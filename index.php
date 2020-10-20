@@ -7,17 +7,20 @@ $ip = @$_SERVER['REMOTE_ADDR'];
 $appcode = "202010161444jivagoo";
 //このスクリプトのパス
 $script_php = $_SERVER['SCRIPT_NAME'];
+//接続端末の情報を得ておく
+$user_agent = $_ENV['HTTP_USER_AGENT'];
 
 //POSTされていない場合はその案内
 if ($_SERVER['REQUEST_METHOD']!='POST'){
     //ローカルからの接続の場合
     $iparray = explode(".", $ip);
     if($iparray[0] == '192' && $iparray[1] == '168' && $iparray[2] == '128'){
-        //phpinfo();
+        //セッションを使って一つ前の値を保持しておく
         session_start();
-        
+        //30秒でリフレッシュさせてるのでリフレッシュまでのカウントダウンをする
         echo '<html><head><meta http-equiv="Refresh" content="30"><title>GhostScan Server</title></head><center><body><h1>Server load status</h1><p>'.
             date("Y-m-d H:i:s").' (<span id="timer">30</span>)</p><hr width="800">';
+        //カウントダウン用のJAVAスクリプト
         echo '
 			<script>
 			window.onload=function(){
@@ -38,10 +41,10 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 			}
 			</script>';
 
-        //CPU使用率
+        //CPU使用率を得ておく
         $load = sys_getloadavg();
         
-        //メモリの使用率
+        //メモリの使用率を算定する
         $free = Shell_exec('free');
         $free = (string)trim($free);
         $free_arr = explode("\n", $free);
@@ -49,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         $mem = array_filter($mem);
         $mem = array_merge($mem);
         $memory_usage = $mem[2]/$mem[1]*100;
-        //処理速度の簡易ベンチマーク
+        //処理速度の簡易ベンチマーク：一億まで$iをカウントアップさせてその時間を計測
         $time_start = microtime(true);
         for($i=0;$i<100000000;$i++){};
         $time = microtime(true) - $time_start;
@@ -63,12 +66,13 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
             <tr><td width="50%" bgcolor="#ddddff"><p>ClientIP</p></td><td width="50%" bgcolor="#ffffff"><p>'.$_SERVER['REMOTE_ADDR'].'</p></td></tr>
             <tr><td width="50%" bgcolor="#ffddee"><p>Benchmark of time to 100million counts</p></td><td width="50%" bgcolor="#ffffff"><p>'.round($time,2).' sec. ('.$_SESSION['benchi'].')</p></td></tr>
             </table>';
+        //資料を置いた
         print '<br><a href="./old_wspri">昔のWSPRI</a></center></body></html>';
-        
+        //セッションを保存（上書き）
 		$_SESSION['cpu'] = $load[0].'％';
 		$_SESSION['memory'] = round($memory_usage,2).'％';
 		$_SESSION['benchi'] = round($time,2).' sec.';
-    }else{
+    }else{//アプリからのアクセスではない場合でLANからのアクセスではない場合はおばけスキャンの情報を表示
         echo '
         <html><head><title>GhostScan Server</title>
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -80,15 +84,15 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         <img src="https://lh3.googleusercontent.com/gD5aQb8FWaQ73bwCEtgc_k8Ry-2bkM6WAaqtQmSYlKjyEGHgP0aOuT4ZzZYAX0-gyv0=s180-rw">
         <p>GhostScan Download Google Play</P></a>
         ';
-        print "<p>".$ip."</p>";
+        print "<p>".$ip."</p>";//アクセス元のIPを表示
         echo '
         </body></html>
         ';
         //POSTされていないでアクセスしてきたらIPを記録するか検討
     }
 }else{//POSTされている
-    //appcodeがPOSTされているなら正式なログイン
-    if($_POST['appcode']==$appcode){
+    //AndroidからappcodeがPOSTされているなら正式なログイン
+    if($_POST['appcode']==$appcode && stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
 
