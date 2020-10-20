@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         //終了コードが送られてきた場合：勝手に冒険が始まりログインするまでサーバのゲームシステムに依存
         //端末のGPSの移動距離を元にサーバMapを移動してイベントを発生させる
 
-    }else{//appcodeがPOSTされていないなら不正ログイン
+    }else{//AndroidからappcodeがPOSTされていないなら不正ログインなのでアプリの情報を表示する
         echo '
         <html><head><title>GostScan Server</title>
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         <img src="https://lh3.googleusercontent.com/gD5aQb8FWaQ73bwCEtgc_k8Ry-2bkM6WAaqtQmSYlKjyEGHgP0aOuT4ZzZYAX0-gyv0=s180-rw">
         <p>GhostScan Download Google Play</P></a>
         ';
-        print $ip;
+        print '<p>'.$ip.'</p>';//接続元IPを表示する
         echo '
         </body></html>
         ';
