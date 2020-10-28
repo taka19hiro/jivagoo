@@ -40,8 +40,11 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     //ローカルからの接続の場合
     $iparray = explode(".", $ip);
     if($iparray[0] == '192' && $iparray[1] == '168' && $iparray[2] == '128'){
-        
-        if(isset($_GET['remove'])) {session_destroy();}
+        //GETでremoveが送信されたら処理する
+        if(isset($_GET['remove'])) {
+            session_destroy();//セッションをクリア
+            header("Location:./");//そのままだと再びGET送信されちゃうのでカレントに一旦戻す
+        }
         //30秒でリフレッシュさせてるのでリフレッシュまでのカウントダウンをする
         echo '<html><head><meta http-equiv="Refresh" content="30"><title>GhostScan Server</title></head>
         <center><body><h1>Server load status</h1><p>'.
@@ -52,7 +55,6 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 			window.onload=function(){
 			    timer();
 			}
-
 			function timer(){
 			    setTimeout(function () {
 			        var time = document.getElementById("timer").innerText;
@@ -60,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 			        countdown(time);
 			    }, 1000);
 			}
-
 			function countdown(time){
 			    document.getElementById("timer").innerText = time;
 			    timer();
