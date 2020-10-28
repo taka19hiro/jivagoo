@@ -17,9 +17,9 @@ $tb_name="player_table";
 //host name
 $host = 'mysql:host=localhost';
 //sql user name
-$user = 'root';
+$user = 'takayama';
 //sql password
-$pass = 'powcyan4612';
+$pass = 'Masahiro4612*';
 //exists
 $exists=false;
 ////////////////////////////////////////
