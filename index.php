@@ -159,9 +159,9 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             //アカウントがない場合は作成する
                             if(!$exists){
                                 //testなので3項目
-                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),dt int(10))';
+                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),time int(10))';
                                 if($db->query($sql)){
-                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,dt) VALUES (:acount,:password,:time)';
+                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,time) VALUES (:acount,:password,:time)';
                                     $sql = $db->prepare($sql);
                                     $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':time'=>time());
                                     $sql->execute($param);
@@ -173,9 +173,9 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                         if($db->query($sql)){
                             $sql = 'use '.$db_name;
                             if($db->query($sql)){
-                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),dt int(10))';
+                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),time int(10))';
                                 if($db->query($sql)){
-                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,dt) VALUES (:acount,:password,:time)';
+                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,time) VALUES (:acount,:password,:time)';
                                     $sql = $db->prepare($sql);
                                     $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password']N,':time'=>time());
                                     $sql->execute($param);
