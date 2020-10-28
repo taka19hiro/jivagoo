@@ -166,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                             $param = array(':time'=>time(),':id'=>$row['id']);
                                             $sql->execute($param);
                                             echo $_SESSION['count'].'回目の更新です';
+                                            $_SESSION['count']++;//インクリメント
                                         }
                                     }
                                     $sql = $db->prepare($sql);
