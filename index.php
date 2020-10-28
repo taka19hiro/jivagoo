@@ -145,7 +145,6 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
                             foreach($sql as $row){
                                 if($row['acount']==$_POST['acount'] && $row['password']==$_POST['password']){
-                                    //session_start();//セッション開始
                                     if($_POST['end_code']){
                                         //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
                                         $sql = 'UPDATE '.$tb_name.' set time=:time where id=:id';
@@ -154,16 +153,19 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                         $sql->execute($param);
                                         session_destroy();//セッションをクリアする
                                         //冒険の関数を作っていれる
+                                        echo '最新の情報を更新しパーティは冒険に出ました';
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
                                         if(!$_SESSION['count']){//countが0なら
                                             echo $row['time'];//jsonでtimeをappで受け取る
                                             $_SESSION['count']++;//インクリメント
+                                            echo '本日最初のログインです更新情報を送ります';
                                         }else{//2回目以降はDBに書き込む
                                             $sql = 'UPDATE '.$tb_name.' set time=:time where id=:id';
                                             $sql = $db->prepare($sql);
                                             $param = array(':time'=>time(),':id'=>$row['id']);
                                             $sql->execute($param);
+                                            echo '2回目以降の更新です';
                                         }
                                     }
                                     $sql = $db->prepare($sql);
