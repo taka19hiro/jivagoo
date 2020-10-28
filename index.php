@@ -9,6 +9,27 @@ $appcode = "202010161444jivagoo";
 $script_php = $_SERVER['SCRIPT_NAME'];
 //接続端末の情報を得ておく
 $user_agent = $_ENV['HTTP_USER_AGENT'];
+//Mysql info//////////////////////////////
+//DB name
+$db_name="GhostScanAR_db";
+//table name
+$tb_name="player_table";
+//host name
+$host = 'mysql:host=localhost';
+//sql user name
+$user = 'root';
+//sql password
+$pass = 'powcyan4612';
+//exists
+$exists=false;
+////////////////////////////////////////
+//セッションの開始
+session_start();
+//session init
+$_SESSION['cpu'] = '0';
+$_SESSION['memory'] = '0';
+$_SESSION['benchi'] = '0';
+$_SESSION['count'] = 0;
 
 //POSTされていない場合はその案内
 if ($_SERVER['REQUEST_METHOD']!='POST'){
@@ -16,10 +37,11 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     $iparray = explode(".", $ip);
     if($iparray[0] == '192' && $iparray[1] == '168' && $iparray[2] == '128'){
         //セッションを使って一つ前の値を保持しておく
-        session_start();
+        //session_start();
         //30秒でリフレッシュさせてるのでリフレッシュまでのカウントダウンをする
-        echo '<html><head><meta http-equiv="Refresh" content="30"><title>GhostScan Server</title></head><center><body><h1>Server load status</h1><p>'.
-            date("Y-m-d H:i:s").' (<span id="timer">30</span>)</p><hr width="800">';
+        echo '<html><head><meta http-equiv="Refresh" content="30"><title>GhostScan Server</title></head>
+        <center><body><h1>Server load status</h1><p>'.
+        date("Y-m-d H:i:s").' (<span id="timer">30</span>)</p><hr width="800">';
         //カウントダウン用のJAVAスクリプト
         echo '
 			<script>
@@ -66,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
             <tr><td width="50%" bgcolor="#ddddff"><p>ClientIP</p></td><td width="50%" bgcolor="#ffffff"><p>'.$_SERVER['REMOTE_ADDR'].'</p></td></tr>
             <tr><td width="50%" bgcolor="#ffddee"><p>Benchmark of time to 100million counts</p></td><td width="50%" bgcolor="#ffffff"><p>'.round($time,2).' sec. ('.$_SESSION['benchi'].')</p></td></tr>
             </table>';
-        //資料を置いた
+        //OldWSPRIの資料を置いた
         print '<br><a href="./old_wspri">昔のWSPRI</a></center></body></html>';
         //セッションを保存（上書き）
 		$_SESSION['cpu'] = $load[0].'％';
@@ -95,8 +117,79 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     if($_POST['appcode']==$appcode && stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
-
-        //検索してアカウントがあればそれを読み込む
+        if($_POST['acount'] && $_POST['password']){
+            try{
+                //Sql connect
+                $db = new PDO($host,$user,$pass);
+        
+                //view databases
+                $sql = 'SHOW DATABASES';
+                $results = $db->query($sql);
+                
+                //array loop
+                while ($result = $results->fetch(PDO::FETCH_NUM)){
+                    //Does the database exist(DBがあった場合)
+                    if($result[0]==$db_name){
+                        $sql = 'use '.$db_name;//DBを選択
+                        if($db->query($sql)){
+                            $sql = "SELECT * FROM ".$tb_name;
+                            $sql=$db->query($sql);
+                            //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
+                            foreach($sql as $row){
+                                if($row['acount']==$_POST['acount'] && $row['password']==$_POST['password']){
+                                    //session_start();//セッション開始
+                                    if($_POST['end_code']){
+                                        //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
+                                        $sql = 'UPDATE '.$tb_name.' set time='.$_POST['time'].' where id='.$row['id'];
+                                        //冒険の関数を作っていれる
+                                    }else{
+                                        //endでない場合で一回目ならはserverのデータをappへ送る
+                                        if($_SESSION['count']){//countが0なら
+                                            echo $row['time'];//jsonでtimeをappで受け取る
+                                            $_SESSION['count']++;//インクリメント
+                                        }else{//2回目以降はDBに書き込む
+                                            $sql = 'UPDATE '.$tb_name.' set time='.$_POST['time'].' where id='.$row['id'];
+                                        }
+                                    }
+                                    $sql = $db->prepare($sql);
+                                    $exists=true;//存在している
+                                    continue;//あったら終わりで次の処理へ
+                                }
+                            }
+                            //アカウントがない場合は作成する
+                            if(!$exists){
+                                //testなので3項目
+                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),dt int(10))';
+                                if($db->query($sql)){
+                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,dt) VALUES (:acount,:password,:time)';
+                                    $sql = $db->prepare($sql);
+                                    $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':time'=>time());
+                                    $sql->execute($param);
+                                }
+                            }
+                        }
+                    }else{//DBがまだない場合はCREATEする
+                        $sql = 'CREATE DATABASE '.$db_name;//DBを作成する
+                        if($db->query($sql)){
+                            $sql = 'use '.$db_name;
+                            if($db->query($sql)){
+                                $sql = 'create table '.$tb_name.' (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,acount varchar(32),password varchar(32),dt int(10))';
+                                if($db->query($sql)){
+                                    $sql = 'INSERT INTO '.$tb_name.' (acount,password,dt) VALUES (:acount,:password,:time)';
+                                    $sql = $db->prepare($sql);
+                                    $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password']N,':time'=>time());
+                                    $sql->execute($param);
+                                }
+                            }
+                        }
+                    }
+                }
+            }catch(PDOException $e){
+                echo "DB connect failure..." . PHP_EOL;
+                echo $e->getMessage();
+                exit;
+            }
+        }
 
         //終了コードが送られてきた場合：勝手に冒険が始まりログインするまでサーバのゲームシステムに依存
         //端末のGPSの移動距離を元にサーバMapを移動してイベントを発生させる
