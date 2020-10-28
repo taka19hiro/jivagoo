@@ -180,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                 $sql = $db->prepare($sql);
                                 $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':time'=>time());
                                 $sql->execute($param);
+                                echo 'アカウントを作成しました';
                             }
                         }
                     }
