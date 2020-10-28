@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     //ローカルからの接続の場合
     $iparray = explode(".", $ip);
     if($iparray[0] == '192' && $iparray[1] == '168' && $iparray[2] == '128'){
-        //セッションを使って一つ前の値を保持しておく
-        //session_start();
+        
+        if(isset($_GET['remove'])) {session_destroy();}
         //30秒でリフレッシュさせてるのでリフレッシュまでのカウントダウンをする
         echo '<html><head><meta http-equiv="Refresh" content="30"><title>GhostScan Server</title></head>
         <center><body><h1>Server load status</h1><p>'.
@@ -93,7 +93,10 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
             <tr><td width="50%" bgcolor="#ffddee"><p>Benchmark of time to 100million counts</p></td><td width="50%" bgcolor="#ffffff"><p>'.round($time,2).' sec. ('.$_SESSION['benchi'].')</p></td></tr>
             </table>';
         //OldWSPRIの資料を置いた
-        print '<br><a href="./old_wspri">昔のWSPRI</a></center></body></html>';
+        echo '<br><a href="./old_wspri">昔のWSPRI</a>
+        <form action="'.$script_php .'" method="GET">
+        <button type="submit" name="remove">SESSION削除</button></form>
+        </center></body></html>';
         //セッションを保存（上書き）
 		$_SESSION['cpu'] = $load[0].'％';
 		$_SESSION['memory'] = round($memory_usage,2).'％';
@@ -145,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     if($_POST['end_code']){
                                         //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
                                         $sql = 'UPDATE '.$tb_name.' set time='.$_POST['time'].' where id='.$row['id'];
+                                        session_destroy();//セッションをクリアする
                                         //冒険の関数を作っていれる
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
