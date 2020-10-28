@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                         //冒険の関数を作っていれる
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
-                                        if($_SESSION['count']){//countが0なら
+                                        if(!$_SESSION['count']){//countが0なら
                                             echo $row['time'];//jsonでtimeをappで受け取る
                                             $_SESSION['count']++;//インクリメント
                                         }else{//2回目以降はDBに書き込む
