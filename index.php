@@ -26,10 +26,14 @@ $exists=false;
 //セッションの開始
 session_start();
 //session init
-$_SESSION['cpu'] = '0';
-$_SESSION['memory'] = '0';
-$_SESSION['benchi'] = '0';
-$_SESSION['count'] = 0;
+if(!isset($_SESSION['cpu'])){
+    $_SESSION['cpu'] = '0';
+    $_SESSION['memory'] = '0';
+    $_SESSION['benchi'] = '0';
+}
+if(!isset($_SESSION['count'])){
+    $_SESSION['count'] = 0;
+}
 
 //POSTされていない場合はその案内
 if ($_SERVER['REQUEST_METHOD']!='POST'){
@@ -177,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                 if($db->query($sql)){
                                     $sql = 'INSERT INTO '.$tb_name.' (acount,password,time) VALUES (:acount,:password,:time)';
                                     $sql = $db->prepare($sql);
-                                    $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password']N,':time'=>time());
+                                    $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':time'=>time());
                                     $sql->execute($param);
                                 }
                             }
