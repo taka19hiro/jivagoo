@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                             $sql = $db->prepare($sql);
                                             $param = array(':time'=>time(),':id'=>$row['id']);
                                             $sql->execute($param);
-                                            echo '2回目以降の更新です';
+                                            echo $_SESSION['count'].'回目の更新です';
                                         }
                                     }
                                     $sql = $db->prepare($sql);
