@@ -122,41 +122,44 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     }
 }else{//POSTされている
     //AndroidからappcodeがPOSTされているなら正式なログイン
-    if($_POST['appcode']==$appcode && stripos($user_agent,'Android') !== false){
+    if($_POST['appcode']==$appcode || stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
         if($_POST['acount'] && $_POST['password']){
             try{
                 //Sql connect
                 $db = new PDO($host,$user,$pass);
-        
+        		echo 'Mysql ログイン成功！';
                 //view databases
                 $sql = 'SHOW DATABASES';
                 $results = $db->query($sql);
-                
+                echo ' : show databases : ';
                 //array loop
                 while ($result = $results->fetch(PDO::FETCH_NUM)){
                     //Does the database exist(DBがあった場合)
+                    
                     if($result[0]==$db_name){
                         $sql = 'use '.$db_name;//DBを選択
+                        echo 'USE '.$db_name.' : ';
                         if($db->query($sql)){
                             $sql = "SELECT * FROM ".$tb_name;
+                            echo $sql.' ; ';
                             $sql=$db->query($sql);
                             //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
                             foreach($sql as $row){
                                 if($row['acount']==$_POST['acount'] && $row['password']==$_POST['password']){
+                                echo ' : アカウントとパスワードが合致しました : ';
                                     //session_start();//セッション開始
                                     if($_POST['end_code']){
+                                    	echo ' : エンドコードが送られてきました : ';
                                         //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
-                                        $sql = 'UPDATE '.$tb_name.' set time=:time where id=:id';
-                                        $sql = $db->prepare($sql);
-                                        $param = array(':time'=>time(),':id'=>$row['id']);
-                                        $sql->execute($param);
+                                        $sql = 'UPDATE '.$tb_name.' set time='.$_POST['time'].' where id='.$row['id'];
                                         session_destroy();//セッションをクリアする
                                         //冒険の関数を作っていれる
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
                                         if(!$_SESSION['count']){//countが0なら
+                        					echo ' ; 初めてのアクセスです : ';
                                             echo $row['time'];//jsonでtimeをappで受け取る
                                             $_SESSION['count']++;//インクリメント
                                         }else{//2回目以降はDBに書き込む
@@ -164,6 +167,8 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                             $sql = $db->prepare($sql);
                                             $param = array(':time'=>time(),':id'=>$row['id']);
                                             $sql->execute($param);
+                                            echo ' : 2回目以降のアクセスです : ';
+                                            echo $sql;
                                         }
                                     }
                                     $sql = $db->prepare($sql);
@@ -173,11 +178,13 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             }
                             //アカウントがない場合は作成する
                             if(!$exists){
+                            	echo ' : アカウントはありません	 : ';
                                 //testなので3項目
                                 $sql = 'INSERT INTO '.$tb_name.' (acount,password,time) VALUES (:acount,:password,:time)';
                                 $sql = $db->prepare($sql);
                                 $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':time'=>time());
                                 $sql->execute($param);
+                                echo 'アカウントを登録しました';
                             }
                         }
                     }
