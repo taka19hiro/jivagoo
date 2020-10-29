@@ -194,6 +194,8 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                         }
                     }
                 }
+                //close mysql
+                $db = null;
             }catch(PDOException $e){
                 echo "DB connect failure..." . PHP_EOL;
                 echo $e->getMessage();
