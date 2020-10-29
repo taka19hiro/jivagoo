@@ -157,7 +157,15 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
                                         if(!$_SESSION['count']){//countが0なら
-                                            echo $row['time'];//jsonでtimeをappで受け取る
+                                            $row = array(
+                                            	'id' => $row['id'],
+                                            	'acount' => $row['acount'],
+                                            	'password' => $row['password'],
+                                            	'time' => $row['time']
+                                            );
+                                            //jsonとして出力
+                                            header('Content-type: application/json');
+                                            echo json_encode($row);//jsonをclientに出力
                                             $_SESSION['count']++;//インクリメント
                                             echo '本日最初のログインです更新情報を送ります';
                                         }else{//2回目以降はDBに書き込む
