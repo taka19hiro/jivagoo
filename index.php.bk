@@ -122,23 +122,20 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     }
 }else{//POSTされている
     //AndroidからappcodeがPOSTされているなら正式なログイン
-    if($_POST['appcode']==$appcode || stripos($user_agent,'Android') !== false){
+    if($_POST['appcode']==$appcode && stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
-        //echo 'LOGIN OK : ';
-        if($_POST['acount']){
-        	//echo 'ISSET OK : ';
-            //$Login=$_POST['LoginArray'];
-            $Ghost=explode("|", $_POST['ghost']);
+        if($_POST['LoginArray']){
+            $Login=$_POST['LoginArray'];
+            $Ghost=$_POST['ghost'];
             try{
-            	//echo 'TRY OK : ';
                 //Sql connect
                 $db = new PDO($host,$user,$pass);
         
                 //view databases
                 $sql = 'SHOW DATABASES';
                 $results = $db->query($sql);
-                //echo 'SHOW DB : ';
+                
                 //array loop
                 while ($result = $results->fetch(PDO::FETCH_NUM)){
                     //Does the database exist(DBがあった場合)
@@ -147,17 +144,9 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                         if($db->query($sql)){
                             $sql = "SELECT * FROM ".$tb_name;
                             $sql=$db->query($sql);
-                            //$sql is Empty
-                            if(!$sql){
-                            	$sql = 'INSERT INTO '.$tb_name.' (acount,password,ghost) VALUES (:acount,:password,:ghost)';
-                                $sql = $db->prepare($sql);
-                                $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost));
-                                $sql->execute($param);
-                                echo 'アカウントを作成しました';
-                            }
                             //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
                             foreach($sql as $row){
-                                if($row['acount']==$_POST['acount'] && $row['password']==$_POST['password']){
+                                if($row['acount']==$Login[0] && $row['password']==$Login[1]){
                                     if($_POST['end_code']){
                                         //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
                                         $sql = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
@@ -170,22 +159,17 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
                                         if(!$_SESSION['count']){//countが0なら
-                                            /*$row = array(
+                                            $row = array(
                                             	'id' => $row['id'],
                                             	'acount' => $row['acount'],
                                             	'password' => $row['password'],
                                             	'ghost' => unserialize($row['ghost'])
-                                            );*/
-                                            $rows=unserialize($row['ghost']);
-                                            for($i=0;$i<count($rows);$i++){
-                                                print $i.' : '.$rows;
-                                            }
-                                            
+                                            );
                                             //jsonとして出力
                                             header('Content-type: application/json');
-                                            echo json_encode($rows);//jsonをclientに出力
+                                            echo json_encode($row);//jsonをclientに出力
                                             $_SESSION['count']++;//インクリメント
-                                            //echo '本日最初のログインです更新情報を送ります';
+                                            echo '本日最初のログインです更新情報を送ります';
                                         }else{//2回目以降はDBに書き込む
                                             $sql = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
                                             $sql = $db->prepare($sql);
@@ -205,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                 //testなので3項目
                                 $sql = 'INSERT INTO '.$tb_name.' (acount,password,ghost) VALUES (:acount,:password,:ghost)';
                                 $sql = $db->prepare($sql);
-                                $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost));
+                                $param = array(':acount'=>$Login[0],':password'=>$Login[1],':ghost'=>serialize($Ghost));
                                 $sql->execute($param);
                                 echo 'アカウントを作成しました';
                             }
@@ -220,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                 exit;
             }
         }
-		//echo 'No.......POST....';
+
         //終了コードが送られてきた場合：勝手に冒険が始まりログインするまでサーバのゲームシステムに依存
         //端末のGPSの移動距離を元にサーバMapを移動してイベントを発生させる
 
