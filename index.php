@@ -170,16 +170,16 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     }else{
                                         //endでない場合で一回目ならはserverのデータをappへ送る
                                         if(!$_SESSION['count']){//countが0なら
-                                            /*$row = array(
-                                            	'id' => $row['id'],
-                                            	'acount' => $row['acount'],
-                                            	'password' => $row['password'],
-                                            	'ghost' => unserialize($row['ghost'])
-                                            );*/
-                                            $rows=unserialize($row['ghost']);
-                                            for($i=0;$i<count($rows);$i++){
-                                                print $i.' : '.$rows;
+                                            /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
+                                            //普通の配列を得連想配列に変換する
+                                            $row = unserialize($row['ghost']);//Sqlのシリアライズを戻す
+                                            $key = array_keys($row);//配列のキーを取り出しておく
+                                            //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                            for($i=0;$i<count($key);$i++){
+                                                $keys[$i] = '"'.$i.'"';
                                             }
+                                            //配列をjson用に連想配列に作り直しておく
+                                            $rows = array_combine($keys,$row);
                                             
                                             //jsonとして出力
                                             header('Content-type: application/json');
