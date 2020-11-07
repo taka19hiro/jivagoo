@@ -122,23 +122,18 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     }
 }else{//POSTされている
     //AndroidからappcodeがPOSTされているなら正式なログイン
-    if($_POST['appcode']==$appcode || stripos($user_agent,'Android') !== false){
+    if($_POST['appcode']==$appcode && stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
-        //echo 'LOGIN OK : ';
         if($_POST['acount']){
-        	//echo 'ISSET OK : ';
-            //$Login=$_POST['LoginArray'];
             $Ghost=explode("|", $_POST['ghost']);
             try{
-            	//echo 'TRY OK : ';
                 //Sql connect
                 $db = new PDO($host,$user,$pass);
         
                 //view databases
                 $sql = 'SHOW DATABASES';
                 $results = $db->query($sql);
-                //echo 'SHOW DB : ';
                 //array loop
                 while ($result = $results->fetch(PDO::FETCH_NUM)){
                     //Does the database exist(DBがあった場合)
@@ -153,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                 $sql = $db->prepare($sql);
                                 $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost));
                                 $sql->execute($param);
-                                echo 'アカウントを作成しました';
+                                //echo 'アカウントを作成しました';
                             }
                             //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
                             foreach($sql as $row){
