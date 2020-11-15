@@ -15,7 +15,9 @@ $user = 'takayama';
 //sql password
 $pass = 'Masahiro4612*';
 /***************************/
-$b_ghost = 20;//渡されるバトル相手のおばけ
+$b_ghost = 13;//渡されるバトル相手のおばけ
+$ghosthp = 5;//おばけの場合の加算HP
+$ghostap = 2;//おばけの場合の加算AP
 $p_array = array(1,2,3,6,9) ;//渡されるパーティの配列数値はid
 
 //一覧を見るか見ないかのフラグ:今は見るになっている
@@ -33,7 +35,7 @@ $count = 0;
 //tabletagHeader
 $tabletag0 =  '<table border=1 width=800>
 			<tr><th>id</th><th>Name</th><th>cp</th><th>HP</th><th>DP</th><th>SP</th><th>LP</th><th>AP</th><th>FP</th><th>TP</th><th>PP</th></tr>';
-
+echo '<html><head><title></title></head><body>';
 try{
 	$db = new PDO($host,$user,$pass);
 	$sql = 'use '.$db_name;//DBを選択
@@ -79,8 +81,8 @@ try{
 			$nu1=$row['id'];//number
 			$na1=$row['name'];//name
 			$le1=$cp;//level
-			$hp1=$row['HP']*4;//HP
-			$at1=$row['AP'];//AttackPoint
+			$hp1=$row['HP']*$ghosthp;//HP
+			$at1=$row['AP']*$ghostap;//AttackPoint
 			$de1=$row['DP'];//DefencePoint
 			$qu1=$row['SP'];//Quickness
 			$he1=$row['TP'];//HealingPoint
@@ -154,12 +156,17 @@ $uni_lucky2=0;//パーティ一応FALSEで初期化
 $at1_bk=$at1;
 $de1_bk=$de1;
 
+//lose party init
+$p=0;
+
+echo '<br>';
+
 //ようやく戦闘に入るぜ
 if(true){
 	print $msg_first;
 	//戦闘ループに入る
 	for($i=0;$i<=$battle_loop;$i++){
-		print '【第'.$i.'回戦】<br>【回戦制限'.$battle_loop.'ターン】<br>';
+		print '【'.($battle_loop +1).'回戦中:第'.($i +1).'回戦】<hr align=left width=800><br>';
 		if($i==$battle_loop) {
 			exit("双方が疲弊してしまった。おばけはふらふらと逃げて行った。<br>");
 		}
@@ -234,8 +241,7 @@ if(true){
 
 		//count init
 		$c=0;
-		//lose party
-		$p=0;
+		
 		//print 'ここまでOK';
 		foreach($p_array as $id){
 			if($id){
@@ -245,7 +251,7 @@ if(true){
 						//先制攻撃フラグに１を入れる
 						$first_attack = 1;
 						//msgを出力
-						print $na1.'が飛びかかっていく！<br>'.$na1.'の攻撃<br>';
+						print 'おばけが飛びかかっていく！<br>おばけの攻撃<br>';
 
 						//攻撃がヒットするかの判定
 						$bom = $qu1q1 - $qu2q2[$c];
@@ -258,18 +264,18 @@ if(true){
 							//quickOne();
 							if($damage>0){
 								$damage=0;
-								$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+								$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 							}else{
 								//攻撃力が二倍または四倍になった
 								if($uni_lucky1){
-									$msg_firstsecond = $na1.'は【渾身の一撃】を放った！！<br>';
+									$msg_firstsecond = 'おばけは【渾身の一撃】を放った！！<br>';
 								}
 								//攻撃を回避できなかった場合にはダメージ０にはしない
 								if($damage>=0){
 									$damage=-1;
 								}
 								$mdamage=$damage*-1;
-								$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+								$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 							}
 							//ダメージを受けた分をhpから差し引く
 							$hp2[$c] = $hp2[$c] + $damage;
@@ -286,18 +292,18 @@ if(true){
 								
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky1){
-										$msg_firstsecond = $na1.'は【痛恨の一撃】を放った！！<br>';
+										$msg_firstsecond = 'おばけは【痛恨の一撃】を放った！！<br>';
 									}
 									//攻撃を回避できなかった場合にはダメージ０にはしない
 									if($damage>=0){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp2[$c] = $hp2[$c] + $damage;
@@ -307,7 +313,7 @@ if(true){
 									$hp2[$c]=0;
 								}
 							}else{
-								$msg_second = $na2[$c].'は'.$na1.'の攻撃を素早くかわした！<br>';
+								$msg_second = $na2[$c].'はおばけの攻撃を素早くかわした！<br>';
 							}
 						//それ未満なら５０%ヒットする
 						}else{
@@ -316,18 +322,18 @@ if(true){
 								//quickOne();
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky1){
-										$msg_firstsecond = $na1.'は【会心の一撃】を放った！！<br>';
+										$msg_firstsecond = 'おばけは【会心の一撃】を放った！！<br>';
 									}
 									//攻撃を回避できなかった場合にはダメージ０にはしない
 									if($damage>=0){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp2[$c] = $hp2[$c] + $damage;
@@ -338,7 +344,7 @@ if(true){
 								}
 								
 							}else{
-								$msg_second = $na2[$c].'は'.$na1.'の攻撃を素早くかわした！<br>';
+								$msg_second = $na2[$c].'はおばけの攻撃を素早くかわした！<br>';
 							}
 						}
 						if(isset($msg_firstsecond)){
@@ -354,10 +360,10 @@ if(true){
 						//出力する
 						echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
 						//tableTAG_END
-						echo '</table>';
+						echo '</table><br>';
 						//ded
 						if($hp2[$c]<1){
-							print ($na2[$c]."は".$na1."に敗北してしまった。<br>");
+							print ($na2[$c]."はおばけに敗北してしまった。<br><br>");
 							$p++;
 						}
 						//msg_firstsecondを空にしておく
@@ -380,7 +386,7 @@ if(true){
 							//quickOne();
 							if($damage>0){
 								$damage=0;
-								$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+								$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 							}else{
 								//攻撃力が二倍または四倍になった
 								if($uni_lucky2){
@@ -391,7 +397,7 @@ if(true){
 									$damage=-1;
 								}
 								$mdamage=$damage*-1;
-								$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+								$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 							}
 							//ダメージを受けた分をhpから差し引く
 							$hp1 = $hp1 + $damage;
@@ -408,7 +414,7 @@ if(true){
 								
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+									$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky2){
@@ -419,7 +425,7 @@ if(true){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp1 = $hp1 + $damage;
@@ -429,7 +435,7 @@ if(true){
 									$hp1=0;
 								}
 							}else{
-								$msg_second = $na1.'は'.$na2[$c].'の攻撃を素早くかわした！<br>';
+								$msg_second = 'おばけは'.$na2[$c].'の攻撃を素早くかわした！<br>';
 							}
 						//それ未満なら５０%ヒットする
 						}else{
@@ -438,7 +444,7 @@ if(true){
 								//quickOne();
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+									$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky2){
@@ -449,7 +455,7 @@ if(true){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp1 = $hp1 + $damage;
@@ -460,7 +466,7 @@ if(true){
 								}
 								
 							}else{
-								$msg_second = $na1.'は'.$na2[$c].'の攻撃を素早くかわした！<br>';
+								$msg_second = 'おばけは'.$na2[$c].'の攻撃を素早くかわした！<br>';
 							}
 						}
 						if(isset($msg_firstsecond)){
@@ -476,22 +482,22 @@ if(true){
 						//出力する
 						echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
 						//tableTAG_END
-						echo '</table>';
+						echo '</table><br>';
 						//ded
 						if($hp1<1){
-							exit($na1."は".$na2[$c]."に敗北してしまった。<br>");
+							exit("おばけは".$na2[$c]."に敗北して浄化され正気に戻った。<br>おばけは".$na1."だった。<br><hr align=left width=800>");
 						}
 						//msg_firstsecondを空にしておく
 						$msg_firstsecond="";
 					//素早さが同じ場合
 					}else if($qu1 == $qu2[$c]){
-						print($na1."と".$na2[$c]."は互いに動けないでいる！<br>");
+						print("おばけと".$na2[$c]."は互いに動けないでいる！<br>");
 						//抽選するよ:５０％の確率
 						if(rand(0, 1)) {
 							//先制攻撃フラグに１を入れる
 							$first_attack = 1;
 							//msgを出力
-							print $na1.'が飛びかかっていく！<br>'.$na1.'の攻撃だ！<br>';
+							print 'おばけが飛びかかっていく！<br>おばけの攻撃だ！<br>';
 
 							//攻撃がヒットするかの判定
 							$bom = $qu1q1 - $qu2q2[$c];
@@ -504,18 +510,18 @@ if(true){
 								//quickOne();
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky1){
-										$msg_firstsecond = $na1.'は【渾身の一撃】を放った！！<br>';
+										$msg_firstsecond = 'おばけは【渾身の一撃】を放った！！<br>';
 									}
 									//攻撃を回避できなかった場合にはダメージ０にはしない
 									if($damage>=0){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp2[$c] = $hp2[$c] + $damage;
@@ -532,18 +538,18 @@ if(true){
 								
 									if($damage>0){
 										$damage=0;
-										$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+										$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 									}else{
 										//攻撃力が二倍または四倍になった
 										if($uni_lucky1){
-											$msg_firstsecond = $na1.'は【痛恨の一撃】を放った！！<br>';
+											$msg_firstsecond = 'おばけは【痛恨の一撃】を放った！！<br>';
 										}
 										//攻撃を回避できなかった場合にはダメージ０にはしない
 										if($damage>=0){
 											$damage=-1;
 										}
 										$mdamage=$damage*-1;
-										$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+										$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 									}
 									//ダメージを受けた分をhpから差し引く
 									$hp2[$c] = $hp2[$c] + $damage;
@@ -553,7 +559,7 @@ if(true){
 										$hp2[$c]=0;
 									}
 								}else{
-									$msg_second = $na2[$c].'は'.$na1.'の攻撃を素早くかわした！<br>';
+									$msg_second = $na2[$c].'はおばけの攻撃を素早くかわした！<br>';
 								}
 							//それ未満なら５０%ヒットする
 							}else{
@@ -562,18 +568,18 @@ if(true){
 									//quickOne();
 									if($damage>0){
 										$damage=0;
-										$msg_second = $na1.'は'.$na2[$c].'にダメージを与えられない！<br>';
+										$msg_second = 'おばけは'.$na2[$c].'にダメージを与えられない！<br>';
 									}else{
 										//攻撃力が二倍または四倍になった
 										if($uni_lucky1){
-											$msg_firstsecond = $na1.'は【会心の一撃】を放った！！<br>';
+											$msg_firstsecond = 'おばけは【会心の一撃】を放った！！<br>';
 										}
 										//攻撃を回避できなかった場合にはダメージ０にはしない
 										if($damage>=0){
 											$damage=-1;
 										}
 										$mdamage=$damage*-1;
-										$msg_second = $na2[$c].'は'.$na1.'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+										$msg_second = $na2[$c].'はおばけの攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 									}
 									//ダメージを受けた分をhpから差し引く
 									$hp2[$c] = $hp2[$c] + $damage;
@@ -584,7 +590,7 @@ if(true){
 									}
 								
 								}else{
-									$msg_second = $na2[$c].'は'.$na1.'の攻撃を素早くかわした！<br>';
+									$msg_second = $na2[$c].'はおばけの攻撃を素早くかわした！<br>';
 								}
 							}
 							if(isset($msg_firstsecond)){
@@ -600,10 +606,10 @@ if(true){
 							//出力する
 							echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
 							//tableTAG_END
-							echo '</table>';
+							echo '</table><br>';
 							//ded
-							if($hp2<1){
-								print ($na2[$c]."は".$na1."に敗北してしまった。<br>");
+							if($hp2[$c]<1){
+								print ($na2[$c]."はおばけに敗北してしまった。<br><br>");
 								$p++;
 							}
 							//msg_firstsecondを空にしておく
@@ -626,7 +632,7 @@ if(true){
 								//quickOne();
 								if($damage>0){
 									$damage=0;
-									$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+									$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 								}else{
 									//攻撃力が二倍または四倍になった
 									if($uni_lucky2){
@@ -637,7 +643,7 @@ if(true){
 										$damage=-1;
 									}
 									$mdamage=$damage*-1;
-									$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 								}
 								//ダメージを受けた分をhpから差し引く
 								$hp1 = $hp1 + $damage;
@@ -654,7 +660,7 @@ if(true){
 								
 									if($damage>0){
 										$damage=0;
-										$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+										$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 									}else{
 										//攻撃力が二倍または四倍になった
 										if($uni_lucky2){
@@ -665,7 +671,7 @@ if(true){
 											$damage=-1;
 										}
 										$mdamage=$damage*-1;
-										$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+										$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 									}
 									//ダメージを受けた分をhpから差し引く
 									$hp1 = $hp1 + $damage;
@@ -675,7 +681,7 @@ if(true){
 										$hp1=0;
 									}
 								}else{
-									$msg_second = $na1.'は'.$na2[$c].'の攻撃を素早くかわした！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'の攻撃を素早くかわした！<br>';
 								}
 							//それ未満なら５０%ヒットする
 							}else{
@@ -684,7 +690,7 @@ if(true){
 									//quickOne();
 									if($damage>0){
 										$damage=0;
-										$msg_second = $na2[$c].'は'.$na1.'にダメージを与えられない！<br>';
+										$msg_second = $na2[$c].'はおばけにダメージを与えられない！<br>';
 									}else{
 										//攻撃力が二倍または四倍になった
 										if($uni_lucky2){
@@ -695,7 +701,7 @@ if(true){
 											$damage=-1;
 										}
 										$mdamage=$damage*-1;
-										$msg_second = $na1.'は'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
+										$msg_second = 'おばけは'.$na2[$c].'の攻撃を避けきれなかった！<br>'.$mdamage.'のダメージ！<br>';
 									}
 									//ダメージを受けた分をhpから差し引く
 									$hp1 = $hp1 + $damage;
@@ -706,7 +712,7 @@ if(true){
 									}
 								
 								}else{
-									$msg_second = $na1.'は'.$na2[$c].'の攻撃を素早くかわした！<br>';
+									$msg_second = 'おばけは'.$na2[$c].'の攻撃を素早くかわした！<br>';
 								}
 							}
 							if(isset($msg_firstsecond)){
@@ -725,7 +731,7 @@ if(true){
 							echo '</table>';
 							//ded
 							if($hp1<1){
-								exit($na1."は".$na2[$c]."に敗北してしまった。<br>");
+								exit("おばけは".$na2[$c]."に敗北して浄化され正気に戻った。<br>おばけは".$na1."だった。<br><hr align=left width=800>");
 							}
 							//msg_firstsecondを空にしておく
 							$msg_firstsecond="";
@@ -733,12 +739,12 @@ if(true){
 						}
 					}
 				}else{
-					print 'もう'.$na2[$c].'は力尽きている...<br>';
+					print 'もう'.$na2[$c].'は力尽きている...<hr style="border:none;border-top:dashed 1px #ff0000;height:1px;color:#FFFFFF;" align=left width=800><br>';
+				}
+				if($count<=$p){
+					exit('パーティは全滅してしまった.....<br>');
 				}
 					$c++;
-			}
-			if($count==$p){
-				exit('パーティは全滅してしまった.....<br>');
 			}
 		}
 	}
@@ -746,3 +752,4 @@ if(true){
 	//メッセージを表示して終了
 	print $msg_first;
 }
+echo '</body></html>';
