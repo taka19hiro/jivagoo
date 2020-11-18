@@ -15,7 +15,7 @@ $user = 'takayama';
 //sql password
 $pass = 'Masahiro4612*';
 /***************************/
-$b_ghost = 13;//渡されるバトル相手のおばけ
+$b_ghost = rand(3,36);//渡されるバトル相手のおばけ
 $ghosthp = 5;//おばけの場合の加算HP
 $ghostap = 2;//おばけの場合の加算AP
 $p_array = array(1,2,3,6,9) ;//渡されるパーティの配列数値はid
