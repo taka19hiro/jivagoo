@@ -133,7 +133,11 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
         if($acount && $password){
             if(isset($_POST['ghost'])){
-                $Ghost  =explode("|",$_POST['ghost']);
+				$Ghostss  =explode("|",$_POST['ghost']);
+				$Ghost=[];
+				foreach($Ghostss as $int_g){
+					$Ghost[] = (int)$int_g;
+				}
                 $master =explode("|",$_POST['master']);
                 $party1 =explode("|",$_POST['party1']);
                 $party2 =explode("|",$_POST['party2']);
@@ -183,14 +187,18 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                         switch($_POST['getdata']){
                                             //if getdata is ghost
                                             case 'ghost':
-                                                $rowghost = unserialize($row['ghost']);//Sqlのシリアライズを戻す
+												$rowghost = unserialize($row['ghost']);//Sqlのシリアライズを戻す
+												$rowghosts=[];
+												foreach($rowghost as $rows){
+													$rowghosts[] = (string)$rows;
+												}
                                                 $keyghost = array_keys($rowghost);//配列のキーを取り出しておく
                                                 //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
                                                 for($i=0;$i<count($keyghost);$i++){
                                                     $keysghost[$i] = '"'.$i.'"';
                                                 }
                                                 //配列をjson用に連想配列に作り直しておく
-                                                $rowsghost = array_combine($keysghost,$rowghost);
+                                                $rowsghost = array_combine($keysghost,$rowghosts);
                                                 
                                                 //jsonとして出力
                                                 header('Content-type: application/json');
@@ -1235,12 +1243,12 @@ function update_sql($messeges,$enemy_number){//ここでsqlに書き込み
 					foreach($enemy as $row){
 						if($row['acount']==$acount && $row['password']==$password){
 						$ghost = unserialize($row['ghost']);
-						/*for($i=0;$i<count($ghost);$i++){
-							if($i==$enemy_number){
+						for($i=0;$i<count($ghost);$i++){
+							if($i==($enemy_number-1)){
 								$ghost[$i]++;
 							}
 							$ghost[$i]=$ghost[$i];
-						}*/
+						}
 
 						$m  = 'UPDATE '.$tb_name.' set trip=:trip,ghost=:ghost where id=:id';
 						$m = $db->prepare($m);
