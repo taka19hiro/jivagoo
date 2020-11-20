@@ -125,18 +125,25 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
         //POSTされていないでアクセスしてきたらIPを記録するか検討
     }
 }else{//POSTされている
+	$acount=$_POST['acount'];
+	$password=$_POST['password'];
     //AndroidからappcodeがPOSTされているなら正式なログイン
     if($_POST['appcode']==$appcode ){//&& stripos($user_agent,'Android') !== false){
         //終了コードが送られてこない場合は端末のゲームシステムに依存し、サーバの処理を終了する
         //初めてのログインならばfalseを返して端末の初期値を端末で生成し、送り、アカウントを登録してDBを生成
-        if($_POST['acount'] && $_POST['password']){
+        if($acount && $password){
             if(isset($_POST['ghost'])){
-                $Ghost =explode("|",$_POST['ghost']);
-                $master=explode("|",$_POST['master']);
-                $party1=explode("|",$_POST['party1']);
-                $party2=explode("|",$_POST['party2']);
-                $party3=explode("|",$_POST['party3']);
-                $party4=explode("|",$_POST['party4']);
+                $Ghost  =explode("|",$_POST['ghost']);
+                $master =explode("|",$_POST['master']);
+                $party1 =explode("|",$_POST['party1']);
+                $party2 =explode("|",$_POST['party2']);
+                $party3 =explode("|",$_POST['party3']);
+                $party4 =explode("|",$_POST['party4']);
+                $items  =explode("|",$_POST['items']);
+                $weapons=explode("|",$_POST['weapons']);
+                $gloves =explode("|",$_POST['gloves']);
+				$armored=explode("|",$_POST['armored']);
+                $shoses =explode("|",$_POST['shoses']);
             }            
             
             try{
@@ -156,16 +163,16 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             $enemy = "SELECT * FROM ".$tb_ghost;
                             $sql=$db->query($sql);
 							$enemy=$db->query($enemy);
-							$result = $enemy->fetchAll();
+							$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
 
                             //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
                             foreach($sql as $row){
-                                if($row['acount']==$_POST['acount'] && $row['password']==$_POST['password']){
+                                if($row['acount']==$acount && $row['password']==$password){
                                     if(isset($_POST['end_code'])){
                                         //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
-                                        $sql = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
+                                        $sql = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
                                         $sql = $db->prepare($sql);
-                                        $param = array(':ghost'=>serialize($Ghost),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
+                                        $param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
                                         $sql->execute($param);
 										//冒険の関数を作っていれる
 										for($i=0;$i<$events;$i++){
@@ -259,7 +266,91 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                                 //jsonとして出力
                                                 header('Content-type: application/json');
                                                 echo json_encode($rowsparty4);//jsonをclientに出力
-                                            break;
+											break;
+											case 'items':
+												$rowitem= unserialize($row['item']);
+												$keyitem = array_keys($rowitem);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keyitem);$i++){
+													$keysitem[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowsitem = array_combine($keysitem,$rowitem);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowsitem);//jsonをclientに出力
+											break;
+											case 'weapons':
+												$rowweapon= unserialize($row['weapon']);
+												$keyweapon = array_keys($rowweapon);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keyweapon);$i++){
+													$keysweapon[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowsweapon = array_combine($keysweapon,$rowweapon);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowsweapon);//jsonをclientに出力
+											break;
+											case 'gloves':
+												$rowgrove= unserialize($row['grove']);
+												$keygrove = array_keys($rowgrove);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keygrove);$i++){
+													$keysgrove[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowsgrove = array_combine($keysgrove,$rowgrove);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowsgrove);//jsonをclientに出力
+											break;
+											case 'armored':
+												$rowarmored= unserialize($row['armored']);
+												$keyarmored = array_keys($rowarmored);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keyarmored);$i++){
+													$keysarmored[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowsarmored = array_combine($keysarmored,$rowarmored);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowsarmored);//jsonをclientに出力
+											break;
+											case 'shoses':
+												$rowshoes= unserialize($row['shoes']);
+												$keyshoes = array_keys($rowshoes);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keyshoes);$i++){
+													$keysshoes[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowsshoes = array_combine($keysshoes,$rowshoes);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowsshoes);//jsonをclientに出力
+											break;
+											case 'trip':
+												$rowtrip= unserialize($row['trip']);
+												$keytrip = array_keys($rowtrip);//配列のキーを取り出しておく
+												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+												for($i=0;$i<count($keytrip);$i++){
+													$keystrip[$i] = '"'.$i.'"';
+												}
+												//配列をjson用に連想配列に作り直しておく
+												$rowstrip = array_combine($keystrip,$rowtrip);
+													
+												//jsonとして出力
+												header('Content-type: application/json');
+												echo json_encode($rowstrip);//jsonをclientに出力
+											break;
                                                 default:
                                                 echo 'error';
                                         }
@@ -275,9 +366,9 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             //アカウントがない場合は作成する
                             if(!$exists){
                                 //testなので3項目
-                                $sql = 'INSERT INTO '.$tb_name.' (acount,password,ghost,master,party1,party2,party3,party4) VALUES (:acount,:password,:ghost,:master,:party1,:party2,:party3,:party4)';
+                                $sql = 'INSERT INTO '.$tb_name.' (acount,password,ghost,item,weapon,grove,armored,shoes,master,party1,party2,party3,party4) VALUES (:acount,:password,:ghost,:item,:weapon,:grove,:armored,:shoes,:master,:party1,:party2,:party3,:party4)';
                                 $sql = $db->prepare($sql);
-                                $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4));
+                                $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost),':item'=>serialize($items),':weapon'=>serialize($weapons),':grove'=>serialize($gloves),':armored'=>serialize($armored),':shoes'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4));
                                 $sql->execute($param);
                                 echo 'アカウントを作成しました';
                             }
@@ -333,7 +424,108 @@ function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4){
 		first($ghosts,$ene,$g_name,$mas,$par1,$par2,$par3,$par4);
     }else{
 		if(rand(0,10)==0){
-			get_item($g_name,$mas);
+			switch(rand(0,40)){
+				case 0:
+					$item = rand(0,15);
+					if($item == 15){
+						$item = rand(0,15);
+						if($item == 15){
+							$item = rand(0,15);
+							if($item == 15){
+								$item = rand(0,15);
+							}
+						}
+					}//1/50625で坂巻のネジ
+					get_item($g_name,$mas,$item,0);
+				break;
+				case 1:
+					$weapon = rand(0,17);
+					if($weapon < 6){
+						get_item($g_name,$mas,$weapon,1);
+					}else{
+						$weapon = rand(0,17);
+						if($weapon < 9){
+							get_item($g_name,$mas,$weapon,1);
+						}else{
+							$weapon = rand(0,17);
+							if($weapon > 9){
+								$weapon = rand(0,17);
+								if($weapon > 9){
+									$weapon = rand(0,17);
+									get_item($g_name,$mas,$weapon,1);
+								}
+							}
+						}
+					}
+				break;
+				case 2:
+					$grove=rand(0,30);
+					switch($grove){
+						case 0:
+							get_item($g_name,$mas,$grove,2);
+						break;
+						case 1:
+							get_item($g_name,$mas,$grove,2);
+						break;
+						case 2:
+							$grove=rand(0,30);
+							if($grove==2){
+								get_item($g_name,$mas,$grove,2);
+							}
+						break;
+						default:
+							$item = rand(0,14);
+							get_item($g_name,$mas,$item,0);
+					}
+				break;
+				case 3:
+					$armoreds = rand(0,30);
+					switch($armoreds){
+						case 0:
+							get_item($g_name,$mas,$armoreds,3);
+						break;
+						case 1:
+							$armoreds = rand(0,30);
+							if($armoreds==1){
+								get_item($g_name,$mas,$armoreds,3);
+							}
+						break;
+						case 2:
+						break;
+							$armoreds = rand(0,100);
+							if($armoreds==2){
+								get_item($g_name,$mas,$armoreds,3);
+							}
+						case 3:
+							$armoreds = rand(0,300);
+							if($armoreds==3){
+								get_item($g_name,$mas,$armoreds,3);
+							}
+						break;
+						default:
+					}
+				break;
+				case 4:
+					$shoes = rand(0,20);
+					switch($shoes){
+						case 0:
+							get_item($g_name,$mas,$shoes,4);
+						break;
+						case 1:
+							get_item($g_name,$mas,$shoes,4);
+						break;
+						case 2:
+							$shoes = rand(0,200);
+							if($shoes == 2){
+								get_item($g_name,$mas,$shoes,4);
+							}
+						break;
+						default:
+					}
+				break;
+				default:
+			}
+			//get_item($g_name,$mas);
 		}
 	}
 }
@@ -423,7 +615,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4){
 		$mess[] = '【'.($battle_loop +1).'回戦中:第'.($i +1).'回戦】';
 		if($i==$battle_loop) {
 			$mess[] = "双方が疲弊してしまった。おばけはふらふらと逃げて行った。";
-			update_sql($mess);
+			update_sql($mess,0);
 			//continue;
 		}
 		
@@ -743,7 +935,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4){
 						if($hp1<1){
 							$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
 							$battle_loop=$i;
-							update_sql($mess);
+							update_sql($mess,$nu1);
 							//continue;
 						}
 						//msg_firstsecondを空にしておく
@@ -992,7 +1184,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4){
 							if($hp1<1){
 								$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化され正気に戻った。おばけは「".$na1."」だった。";
 								$battle_loop=$i;
-								update_sql($mess);
+								update_sql($mess,$nu1);
 								//continue;
 							}
 							//msg_firstsecondを空にしておく
@@ -1009,16 +1201,183 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4){
 			$mess[] = 'パーティは全滅してしまった.....';
 			$battle_loop=$i;
 			//print '  battle_loop:'.$battle_loop.':i:'.$i;
-			update_sql($mess);
+			update_sql($mess,0);
 		}
 	}
 }
-function update_sql($messeges){//ここでsqlに書き込み
-	foreach($messeges as $ms){
+function update_sql($messeges,$enemy_number){//ここでsqlに書き込み
+	array_push($messeges,'END_EVENT!');
+	global $host;
+	global $user;
+	global $pass;
+	global $db_name;
+	global $tb_name;
+	global $acount;
+	global $password;
+	try{
+		//Sql connect
+		$db = new PDO($host,$user,$pass);
+        //echo '	：tripに書き込みログインOK:　';
+		//view databases
+		$sql = 'SHOW DATABASES';
+		$results = $db->query($sql);
+		//array loop
+		while ($result = $results->fetch(PDO::FETCH_NUM)){
+			//Does the database exist(DBがあった場合)
+			if($result[0]==$db_name){
+				$sql = 'use '.$db_name;//DBを選択
+				if($db->query($sql)){
+					$enemy = "SELECT * FROM ".$tb_name;
+					$enemy=$db->query($enemy);
+					//$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
+					
+					echo '  :acount:  '.$acount.' :PASS: '.$password;
+					foreach($enemy as $row){
+						if($row['acount']==$acount && $row['password']==$password){
+						$ghost = unserialize($row['ghost']);
+						/*for($i=0;$i<count($ghost);$i++){
+							if($i==$enemy_number){
+								$ghost[$i]++;
+							}
+							$ghost[$i]=$ghost[$i];
+						}*/
+
+						$m  = 'UPDATE '.$tb_name.' set trip=:trip,ghost=:ghost where id=:id';
+						$m = $db->prepare($m);
+						$w = array(':trip'=>serialize($messeges),':ghost'=>serialize($ghost),':id'=>$row['id']);
+						$m->execute($w);
+						}
+					}
+					var_dump($ghost);
+					echo $enemy_number;
+
+					/*$sql = 'UPDATE '.$tb_name.' set ghost=:ghost';
+                    $sql = $db->prepare($sql);
+                    $param = array(':ghost'=>serialize($Ghost));
+                    $sql->execute($param);*/
+				}
+			}
+		}
+		//close mysql
+		$db = null;
+	}catch(PDOException $e){
+		echo "DB connect failure..." . PHP_EOL;
+		echo $e->getMessage();
+		exit;
+	}
+
+	/*foreach($messeges as $ms){
 		echo $ms;
 	}
-	print '-------End Events!------------';
+	print '-------End Events!------------';*/
 }
-function get_item($g_namae,$mast){
-	echo $g_namae[$mast[0]].'は「木の棒」を拾った！';
+function get_item($g_namae,$mast,$get,$nun){
+/*
+	global $host;
+	global $user;
+	global $pass;
+	global $db_name;
+	global $tb_name;
+	try{
+		//Sql connect
+		$db = new PDO($host,$user,$pass);
+        
+		//view databases
+		$sql = 'SHOW DATABASES';
+		$results = $db->query($sql);
+		//array loop
+		while ($result = $results->fetch(PDO::FETCH_NUM)){
+			//Does the database exist(DBがあった場合)
+			if($result[0]==$db_name){
+				$sql = 'use '.$db_name;//DBを選択
+				if($db->query($sql)){
+					$enemy = "SELECT * FROM ".$tb_name;
+					$enemy=$db->query($enemy);
+					//$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
+					$sql = 'UPDATE '.$tb_name.' set item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses where id=:id';
+                    $sql = $db->prepare($sql);
+                    $param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),:id'=>$row['id']);
+                    $sql->execute($param);
+				}
+			}
+		}
+		//close mysql
+		$db = null;
+	}catch(PDOException $e){
+		echo "DB connect failure..." . PHP_EOL;
+		echo $e->getMessage();
+		exit;
+	}*/
+	switch($nun){
+		case 0:
+			$gets='アイテム：';
+			switch($get){
+				case 0: $gets=$gets.'オーラ飴';	break;
+				case 1:	$gets=$gets.'あんこ玉';	break;
+				case 2:	$gets=$gets.'あんこ玉(大)';	break;
+				case 3:	$gets=$gets.'すもも漬け'; break;
+				case 4:	$gets=$gets.'ボンタンアメ';	break;
+				case 5:	$gets=$gets.'コンペイトウ';	break;
+				case 6:	$gets=$gets.'きなこボー'; break;
+				case 7:	$gets=$gets.'ブタメン';	break;
+				case 8:	$gets=$gets.'リリアン';	break;
+				case 9:	$gets=$gets.'めんこ';	break;
+				case 10:	$gets=$gets.'ピコピコハンマー';	break;
+				case 11:	$gets=$gets.'セルロイドの刀';	break;
+				case 12:	$gets=$gets.'銀玉鉄砲';	break;
+				case 13:	$gets=$gets.'かんしゃく玉';	break;
+				case 14:	$gets=$gets.'おばけけむり';	break;
+				case 15:	$gets=$gets.'坂巻のネジ';	break;
+			}
+		break;
+		case 1:
+			$gets='武器：';
+			switch($get){
+				case 0:	$gets=$gets.'木の枝';	break;
+				case 1:	$gets=$gets.'棍棒';	break;
+				case 2:	$gets=$gets.'Y字方パチンコ';	break;
+				case 3:	$gets=$gets.'水鉄砲';	break;
+				case 4:	$gets=$gets.'竹刀';	break;
+				case 5:	$gets=$gets.'木刀';	break;
+				case 6:	$gets=$gets.'脇差(無銘)';	break;
+				case 7:	$gets=$gets.'太刀(無銘)';	break;
+				case 8:	$gets=$gets.'打刀(無銘)';	break;
+				case 9:	$gets=$gets.'不動正宗';	break;
+				case 10:	$gets=$gets.'鬼切丸';	break;
+				case 11:	$gets=$gets.'村雨';	break;
+				case 12:	$gets=$gets.'同田貫';	break;
+				case 13:	$gets=$gets.'竿竹';	break;
+				case 14:	$gets=$gets.'たんぽ槍';	break;
+				case 15:	$gets=$gets.'竹製なぎなた';	break;
+				case 16:	$gets=$gets.'蜻蛉切';	break;
+				case 17:	$gets=$gets.'岩融';	break;
+			}
+		break;
+		case 2:
+			$gets='手袋：';
+			switch($get){
+				case 0:	$gets=$gets.'軍手';	break;
+				case 1:	$gets=$gets.'皮の手袋';	break;
+				case 3:	$gets=$gets.'籠手';	break;
+			}
+		break;
+		case 3:
+			$gets='防具：';
+			switch($get){
+				case 0:	$gets=$gets.'竹胴';	break;
+				case 1:	$gets=$gets.'無銘具足';	break;
+				case 2:	$gets=$gets.'南蛮胴具足';	break;
+				case 3:	$gets=$gets.'紺糸裾素懸威胴丸';	break;
+			}
+		break;
+		case 4:
+			$gets='靴：';
+			switch($get){
+				case 0:	$gets=$gets.'瞬足';	break;
+				case 1:	$gets=$gets.'安全靴';	break;
+				case 2:	$gets=$gets.'歩雲履';	break;
+			}
+		break;
+	}
+	echo $g_namae[$mast[0]].'は「'.$gets.'」を拾った！';
 }
