@@ -507,8 +507,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 	$En = $en;
 	print ' LOOP: '.$loop.' : ';
 	for($counts=0;$counts<$loop;$counts++){
-		$type=rand(0,10);
-		if($type<11){//0,1=バトルの場合
+		//$type=rand(0,10);
+		if(1){//0,1=バトルの場合
 			$mono=100;
 			$emono=100;
 			$i=0;//カウント初期化
@@ -919,8 +919,194 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								if($hp1<1){
 									$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
 									$mess[] = 'END_EVENT!';
+									$otosimono=rand(0,20);
+									//1/20
+									if($otosimono==0){
+										$mono=rand(0,4);
+										switch($mono){
+											case 0:
+												$emono=rand(0,15);
+												if($emono==15){
+													$emono=rand(0,15);
+													if($emono==15){
+														$emono=rand(0,15);
+														if($emono==15){
+															$emono=rand(0,15);
+															if($emono==15){
+																$emono=rand(0,15);//1/759375
+															}
+														}
+													}
+												}
+												$gets='アイテム：';
+												switch($emono){
+													case 0: $gets=$gets.'オーラ飴';	break;
+													case 1:	$gets=$gets.'あんこ玉';	break;
+													case 2:	$gets=$gets.'あんこ玉(大)';	break;
+													case 3:	$gets=$gets.'すもも漬け'; break;
+													case 4:	$gets=$gets.'ボンタンアメ';	break;
+													case 5:	$gets=$gets.'コンペイトウ';	break;
+													case 6:	$gets=$gets.'きなこボー'; break;
+													case 7:	$gets=$gets.'ブタメン';	break;
+													case 8:	$gets=$gets.'リリアン';	break;
+													case 9:	$gets=$gets.'めんこ';	break;
+													case 10:	$gets=$gets.'ピコピコハンマー';	break;
+													case 11:	$gets=$gets.'セルロイドの刀';	break;
+													case 12:	$gets=$gets.'銀玉鉄砲';	break;
+													case 13:	$gets=$gets.'かんしゃく玉';	break;
+													case 14:	$gets=$gets.'おばけけむり';	break;
+													case 15:	$gets=$gets.'坂巻のネジ';	break;
+												}
+											break;
+											case 1:
+												$emono=rand(0,4);
+												if($emono>3){
+													$emono=rand(0,5);
+													if($emono>4){
+														$emono=rand(0,8);
+														if($emono>7){
+															$emono=rand(0,17);
+															if($emono>8){
+																$emono=rand(0,17);
+															}
+														}
+													}
+												}
+												$gets='武器：';
+												switch($emono){
+													case 0:	$gets=$gets.'木の枝';	break;
+													case 1:	$gets=$gets.'棍棒';	break;
+													case 2:	$gets=$gets.'Y字方パチンコ';	break;
+													case 3:	$gets=$gets.'水鉄砲';	break;
+													case 4:	$gets=$gets.'竹刀';	break;
+													case 5:	$gets=$gets.'木刀';	break;
+													case 6:	$gets=$gets.'脇差(無銘)';	break;
+													case 7:	$gets=$gets.'太刀(無銘)';	break;
+													case 8:	$gets=$gets.'打刀(無銘)';	break;
+													case 9:	$gets=$gets.'不動正宗';	break;
+													case 10:	$gets=$gets.'鬼切丸';	break;
+													case 11:	$gets=$gets.'村雨';	break;
+													case 12:	$gets=$gets.'同田貫';	break;
+													case 13:	$gets=$gets.'竿竹';	break;
+													case 14:	$gets=$gets.'たんぽ槍';	break;
+													case 15:	$gets=$gets.'竹製なぎなた';	break;
+													case 16:	$gets=$gets.'蜻蛉切';	break;
+													case 17:	$gets=$gets.'岩融';	break;
+												}
+											break;
+											case 2:
+												$emono=rand(0,2);
+												if($emono!=0){
+													$emono=rand(0,2);
+													if($emono!=0){
+														$emono=rand(0,2);
+														if($emono!=0){
+															$emono=rand(0,2);
+														}
+													}
+												}
+												$gets='手袋：';
+												switch($emono){
+													case 0:	$gets=$gets.'軍手';	break;
+													case 1:	$gets=$gets.'皮の手袋';	break;
+													case 2:	$gets=$gets.'籠手';	break;
+												}
+											break;
+											case 3:
+												$emono=rand(0,3);
+												if($emono!=0){
+													$emono=rand(0,3);
+													if($emono!=0){
+														$emono=rand(0,3);
+														if($emono!=0){
+															$emono=rand(0,3);
+															if($emono!=0){
+																$emono=rand(0,3);
+																if($emono>=1){
+																	$emono=rand(0,3);
+																	if($emono>=1){
+																		$emono=rand(0,3);
+																		if($emono>=1){
+																			$emono=rand(0,3);
+																			if($emono>=1){
+																				$emono=rand(0,3);
+																				if($emono>=1){
+																					$emono=rand(0,3);
+																					if($emono==3){
+																						$emono=rand(0,3);
+																						if($emono==3){
+																							$emono=rand(0,3);
+																							if($emono==3){
+																								$emono=rand(0,3);
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												$gets='防具：';
+												switch($emono){
+													case 0:	$gets=$gets.'竹胴';	break;
+													case 1:	$gets=$gets.'無銘具足';	break;
+													case 2:	$gets=$gets.'南蛮胴具足';	break;
+													case 3:	$gets=$gets.'紺糸裾素懸威胴丸';	break;
+												}
+											break;
+											case 4:
+												$emono=rand(0,1);
+												if($emono==1){
+													$emono=rand(0,1);
+													if($emono==0){
+														$emono=rand(0,1);
+														if($emono==1){
+															$emono=rand(0,1);
+															if($emono==0){
+																$emono=rand(0,1);
+																if($emono==1){
+																	$emono=rand(0,1);
+																	if($emono==0){
+																		$emono=rand(0,2);
+																		if($emono==2){
+																			$emono=rand(0,2);
+																			if($emono==2){
+																				$emono=rand(0,2);
+																				if($emono==2){
+																					$emono=rand(0,2);
+																					if($emono==2){
+																						$emono=rand(0,2);
+																						if($emono==2){
+																							$emono=rand(0,2);
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												$gets='靴：';
+												switch($emono){
+													case 0:	$gets=$gets.'瞬足';	break;
+													case 1:	$gets=$gets.'安全靴';	break;
+													case 2:	$gets=$gets.'歩雲履';	break;
+												}
+										}
+											$mess[] = 'STRAT_GET!';
+											$mess[] = '何かを落とすのが見えた。拾ってみると'.$gets.'のようだ！';
+											$mess[] = '「'.$gets.'」をゲットした！';
+											$mess[] = 'END_GET!';
+									}
 									$battle_loop=$i;
-									update_sql($mess,$nu1,100,100,0);
+									update_sql($mess,$nu1,$mono,$emono,0);
 									//update_sql($mess,$nu1);
 									break;
 									//continue;
@@ -1198,199 +1384,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 					continue;
 				}
 			}
-		}else{//拾い物
-			print '拾い物';
-			
-			//if($part4!=100){
-			$mono=rand(0,4);//$part2;
-			//$emono=$part1;
-			$nu1=1;
-			switch($mono){
-				case 0:
-					$emono=rand(0,15);
-					if($emono==15){
-						$emono=rand(0,15);
-						if($emono==15){
-							$emono=rand(0,15);
-							if($emono==15){
-								$emono=rand(0,15);
-								if($emono==15){
-									$emono=rand(0,15);//1/759375
-								}
-							}
-						}
-					}
-					$gets='アイテム：';
-					switch($emono){
-						case 0: $gets=$gets.'オーラ飴';	break;
-						case 1:	$gets=$gets.'あんこ玉';	break;
-						case 2:	$gets=$gets.'あんこ玉(大)';	break;
-						case 3:	$gets=$gets.'すもも漬け'; break;
-						case 4:	$gets=$gets.'ボンタンアメ';	break;
-						case 5:	$gets=$gets.'コンペイトウ';	break;
-						case 6:	$gets=$gets.'きなこボー'; break;
-						case 7:	$gets=$gets.'ブタメン';	break;
-						case 8:	$gets=$gets.'リリアン';	break;
-						case 9:	$gets=$gets.'めんこ';	break;
-						case 10:	$gets=$gets.'ピコピコハンマー';	break;
-						case 11:	$gets=$gets.'セルロイドの刀';	break;
-						case 12:	$gets=$gets.'銀玉鉄砲';	break;
-						case 13:	$gets=$gets.'かんしゃく玉';	break;
-						case 14:	$gets=$gets.'おばけけむり';	break;
-						case 15:	$gets=$gets.'坂巻のネジ';	break;
-					}
-				break;
-				case 1:
-					$emono=rand(0,4);
-					if($emono>3){
-						$emono=rand(0,5);
-						if($emono>4){
-							$emono=rand(0,8);
-							if($emono>7){
-								$emono=rand(0,17);
-								if($emono>8){
-									$emono=rand(0,17);
-								}
-							}
-						}
-					}
-					$gets='武器：';
-					switch($emono){
-						case 0:	$gets=$gets.'木の枝';	break;
-						case 1:	$gets=$gets.'棍棒';	break;
-						case 2:	$gets=$gets.'Y字方パチンコ';	break;
-						case 3:	$gets=$gets.'水鉄砲';	break;
-						case 4:	$gets=$gets.'竹刀';	break;
-						case 5:	$gets=$gets.'木刀';	break;
-						case 6:	$gets=$gets.'脇差(無銘)';	break;
-						case 7:	$gets=$gets.'太刀(無銘)';	break;
-						case 8:	$gets=$gets.'打刀(無銘)';	break;
-						case 9:	$gets=$gets.'不動正宗';	break;
-						case 10:	$gets=$gets.'鬼切丸';	break;
-						case 11:	$gets=$gets.'村雨';	break;
-						case 12:	$gets=$gets.'同田貫';	break;
-						case 13:	$gets=$gets.'竿竹';	break;
-						case 14:	$gets=$gets.'たんぽ槍';	break;
-						case 15:	$gets=$gets.'竹製なぎなた';	break;
-						case 16:	$gets=$gets.'蜻蛉切';	break;
-						case 17:	$gets=$gets.'岩融';	break;
-					}
-				break;
-				case 2:
-					$emono=rand(0,2);
-					if($emono!=0){
-						$emono=rand(0,2);
-						if($emono!=0){
-							$emono=rand(0,2);
-							if($emono!=0){
-								$emono=rand(0,2);
-							}
-						}
-					}
-					$gets='手袋：';
-					switch($emono){
-						case 0:	$gets=$gets.'軍手';	break;
-						case 1:	$gets=$gets.'皮の手袋';	break;
-						case 2:	$gets=$gets.'籠手';	break;
-					}
-				break;
-				case 3:
-					$emono=rand(0,3);
-					if($emono!=0){
-						$emono=rand(0,3);
-						if($emono!=0){
-							$emono=rand(0,3);
-							if($emono!=0){
-								$emono=rand(0,3);
-								if($emono!=0){
-									$emono=rand(0,3);
-									if($emono>=1){
-										$emono=rand(0,3);
-										if($emono>=1){
-											$emono=rand(0,3);
-											if($emono>=1){
-												$emono=rand(0,3);
-												if($emono>=1){
-													$emono=rand(0,3);
-													if($emono>=1){
-														$emono=rand(0,3);
-														if($emono==3){
-															$emono=rand(0,3);
-															if($emono==3){
-																$emono=rand(0,3);
-																if($emono==3){
-																	$emono=rand(0,3);
-																}
-															}
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-					$gets='防具：';
-					switch($emono){
-						case 0:	$gets=$gets.'竹胴';	break;
-						case 1:	$gets=$gets.'無銘具足';	break;
-						case 2:	$gets=$gets.'南蛮胴具足';	break;
-						case 3:	$gets=$gets.'紺糸裾素懸威胴丸';	break;
-					}
-				break;
-				case 4:
-					$emono=rand(0,1);
-					if($emono==1){
-						$emono=rand(0,1);
-						if($emono==0){
-							$emono=rand(0,1);
-							if($emono==1){
-								$emono=rand(0,1);
-								if($emono==0){
-									$emono=rand(0,1);
-									if($emono==1){
-										$emono=rand(0,1);
-										if($emono==0){
-											$emono=rand(0,2);
-											if($emono==2){
-												$emono=rand(0,2);
-												if($emono==2){
-													$emono=rand(0,2);
-													if($emono==2){
-														$emono=rand(0,2);
-														if($emono==2){
-															$emono=rand(0,2);
-															if($emono==2){
-																$emono=rand(0,2);
-															}
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-					$gets='靴：';
-					switch($emono){
-						case 0:	$gets=$gets.'瞬足';	break;
-						case 1:	$gets=$gets.'安全靴';	break;
-						case 2:	$gets=$gets.'歩雲履';	break;
-					}
-				//break;
-				//default:
-				//echo 'error!';
-			}
-				$mess[] = 'STRAT_GET!';
-				$mess[] = 'ふと物陰に'.$gets.'を見つけた。';
-				$mess[] = $g_nam[$maste[0]].'は「'.$gets.'」を拾った！';
-				$mess[] = 'END_GET!';
-				update_sql($mess,$nu1,$mono,$emono,0);
-			//break;
 		}
 	}
 	$mess=array_filter($mess, 'myFilter');//配列の空を取り除く
@@ -1401,13 +1394,12 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 		}else{
 			update_sql('Empty Array!',$nu1,$mono,$emono,1);
 		}
-	}/*else{
-		update_sql($mess,$nu1,$mono,$emono,0);
-	}*/
-	var_dump($mess);
+	}
+	//var_dump($mess);
 	echo ' : '.$counts.'=='.$loop.' : ';
 }
 function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに書き込み
+	
 	//array_push($messeges,'END_EVENT!');
 	global $host;
 	global $user;
@@ -1437,7 +1429,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 						//echo '  :acount:  '.$acount.' :PASS: '.$password;
 						foreach($enemy as $row){
 							if($row['acount']==$acount && $row['password']==$password){
-								if($mon==100 && $emo==100 && !$type){
+								if(!$type){
 									print ' : battle : ';
 									$ghost = unserialize($row['ghost']);
 									for($i=0;$i<count($ghost);$i++){
@@ -1446,20 +1438,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										}
 										$ghost[$i]=$ghost[$i];
 									}
-
-									$m  = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
-									$m = $db->prepare($m);
-									$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
-									$m->execute($w);
-								}else if($mon!=100 && $emo!=100 && !$type){
-									/*if($messeges=='Empty Array!'){
-										echo ' : Empty Array! : ';
-										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
-										$m = $db->prepare($m);
-										$w = array(':trip'=>'',':id'=>$row['id']);
-										$m->execute($w);
-									}else{*/
-										print ' : getitem : ';
+									//落し物を拾っている場合
+									if($mon!=100&&$emo!=100){
+										print ' : hirotteru : ';
 										switch($mon){
 											case 0:
 												$items = unserialize($row['item']);
@@ -1469,9 +1450,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													}
 													$items[$i]=$items[$i];
 												}
-												$m  = 'UPDATE '.$tb_name.' set item=:item where id=:id';
+												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:item where id=:id';
 												$m = $db->prepare($m);
-												$w = array(':item'=>serialize($items),':id'=>$row['id']);
+												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
 											case 1:
@@ -1482,9 +1463,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													}
 													$items[$i]=$items[$i];
 												}
-												$m  = 'UPDATE '.$tb_name.' set weapon=:item where id=:id';
+												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:item where id=:id';
 												$m = $db->prepare($m);
-												$w = array(':item'=>serialize($items),':id'=>$row['id']);
+												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
 											case 2:
@@ -1495,9 +1476,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													}
 													$items[$i]=$items[$i];
 												}
-												$m  = 'UPDATE '.$tb_name.' set grove=:item where id=:id';
+												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,grove=:item where id=:id';
 												$m = $db->prepare($m);
-												$w = array(':item'=>serialize($items),':id'=>$row['id']);
+												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
 											case 3:
@@ -1508,9 +1489,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													}
 													$items[$i]=$items[$i];
 												}
-												$m  = 'UPDATE '.$tb_name.' set armored=:item where id=:id';
+												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,armored=:item where id=:id';
 												$m = $db->prepare($m);
-												$w = array(':item'=>serialize($items),':id'=>$row['id']);
+												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
 											case 4:
@@ -1521,14 +1502,20 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													}
 													$items[$i]=$items[$i];
 												}
-												$m  = 'UPDATE '.$tb_name.' set shoes=:item where id=:id';
+												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,shoes=:item where id=:id';
 												$m = $db->prepare($m);
-												$w = array(':item'=>serialize($items),':id'=>$row['id']);
+												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
-										//}
+										}
+									}else{
+										print ' : nongetitem : ';
+										$m  = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
+										$m->execute($w);
 									}
-								}else if($type){
+								}else{
 									if($messeges=='Empty Array!'){
 										echo ' : Empty Array! : ';
 										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
@@ -1541,19 +1528,11 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										$m = $db->prepare($m);
 										$w = array(':trip'=>serialize($messeges),':id'=>$row['id']);
 										$m->execute($w);
+										session_destroy();
 									}
 								}
-									
-								
 							}
 						}
-						//var_dump($ghost);
-						//echo $enemy_number;
-
-						/*$sql = 'UPDATE '.$tb_name.' set ghost=:ghost';
-						$sql = $db->prepare($sql);
-						$param = array(':ghost'=>serialize($Ghost));
-						$sql->execute($param);*/
 					}
 				}
 			}
@@ -1565,121 +1544,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 		echo $e->getMessage();
 		exit;
 	}
-
-	/*foreach($messeges as $ms){
-		echo $ms;
-	}
-	print '-------End Events!------------';*/
-}
-function get_item($g_namae,$mast,$get,$nun){
-/*
-	global $host;
-	global $user;
-	global $pass;
-	global $db_name;
-	global $tb_name;
-	try{
-		//Sql connect
-		$db = new PDO($host,$user,$pass);
-        
-		//view databases
-		$sql = 'SHOW DATABASES';
-		$results = $db->query($sql);
-		//array loop
-		while ($result = $results->fetch(PDO::FETCH_NUM)){
-			//Does the database exist(DBがあった場合)
-			if($result[0]==$db_name){
-				$sql = 'use '.$db_name;//DBを選択
-				if($db->query($sql)){
-					$enemy = "SELECT * FROM ".$tb_name;
-					$enemy=$db->query($enemy);
-					//$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
-					$sql = 'UPDATE '.$tb_name.' set item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses where id=:id';
-                    $sql = $db->prepare($sql);
-                    $param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),:id'=>$row['id']);
-                    $sql->execute($param);
-				}
-			}
-		}
-		//close mysql
-		$db = null;
-	}catch(PDOException $e){
-		echo "DB connect failure..." . PHP_EOL;
-		echo $e->getMessage();
-		exit;
-	}*/
-	switch($nun){
-		case 0:
-			$gets='アイテム：';
-			switch($get){
-				case 0: $gets=$gets.'オーラ飴';	break;
-				case 1:	$gets=$gets.'あんこ玉';	break;
-				case 2:	$gets=$gets.'あんこ玉(大)';	break;
-				case 3:	$gets=$gets.'すもも漬け'; break;
-				case 4:	$gets=$gets.'ボンタンアメ';	break;
-				case 5:	$gets=$gets.'コンペイトウ';	break;
-				case 6:	$gets=$gets.'きなこボー'; break;
-				case 7:	$gets=$gets.'ブタメン';	break;
-				case 8:	$gets=$gets.'リリアン';	break;
-				case 9:	$gets=$gets.'めんこ';	break;
-				case 10:	$gets=$gets.'ピコピコハンマー';	break;
-				case 11:	$gets=$gets.'セルロイドの刀';	break;
-				case 12:	$gets=$gets.'銀玉鉄砲';	break;
-				case 13:	$gets=$gets.'かんしゃく玉';	break;
-				case 14:	$gets=$gets.'おばけけむり';	break;
-				case 15:	$gets=$gets.'坂巻のネジ';	break;
-			}
-		break;
-		case 1:
-			$gets='武器：';
-			switch($get){
-				case 0:	$gets=$gets.'木の枝';	break;
-				case 1:	$gets=$gets.'棍棒';	break;
-				case 2:	$gets=$gets.'Y字方パチンコ';	break;
-				case 3:	$gets=$gets.'水鉄砲';	break;
-				case 4:	$gets=$gets.'竹刀';	break;
-				case 5:	$gets=$gets.'木刀';	break;
-				case 6:	$gets=$gets.'脇差(無銘)';	break;
-				case 7:	$gets=$gets.'太刀(無銘)';	break;
-				case 8:	$gets=$gets.'打刀(無銘)';	break;
-				case 9:	$gets=$gets.'不動正宗';	break;
-				case 10:	$gets=$gets.'鬼切丸';	break;
-				case 11:	$gets=$gets.'村雨';	break;
-				case 12:	$gets=$gets.'同田貫';	break;
-				case 13:	$gets=$gets.'竿竹';	break;
-				case 14:	$gets=$gets.'たんぽ槍';	break;
-				case 15:	$gets=$gets.'竹製なぎなた';	break;
-				case 16:	$gets=$gets.'蜻蛉切';	break;
-				case 17:	$gets=$gets.'岩融';	break;
-			}
-		break;
-		case 2:
-			$gets='手袋：';
-			switch($get){
-				case 0:	$gets=$gets.'軍手';	break;
-				case 1:	$gets=$gets.'皮の手袋';	break;
-				case 3:	$gets=$gets.'籠手';	break;
-			}
-		break;
-		case 3:
-			$gets='防具：';
-			switch($get){
-				case 0:	$gets=$gets.'竹胴';	break;
-				case 1:	$gets=$gets.'無銘具足';	break;
-				case 2:	$gets=$gets.'南蛮胴具足';	break;
-				case 3:	$gets=$gets.'紺糸裾素懸威胴丸';	break;
-			}
-		break;
-		case 4:
-			$gets='靴：';
-			switch($get){
-				case 0:	$gets=$gets.'瞬足';	break;
-				case 1:	$gets=$gets.'安全靴';	break;
-				case 2:	$gets=$gets.'歩雲履';	break;
-			}
-		break;
-	}
-	echo $g_namae[$mast[0]].'は「'.$gets.'」を拾った！';
 }
 function myFilter($val) {
 	return !($val === "" || $val === false);
