@@ -194,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                         $sql->execute($param);
 										//冒険の関数を作っていれる
 										battle($Ghost,$result,$master,$party1,$party2,$party3,$party4,$events);
-                                    }else if(time()>$row['a_time']+60){//3600:1hour
+                                    }else if(time()>$row['a_time']+3600){//3600:1hour
                                         //endでない場合でPOSTから1時間を経過していたらはserverのデータをappへ送る
                                         switch($_POST['getdata']){
                                             //if getdata is ghost
@@ -423,24 +423,31 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 												echo json_encode($rowstrip);//jsonをclientに出力
 											break;
                                                 default:
-                                                echo 'error';
+                                                echo 'error:POST is not done correctly.';
                                         }
                                             /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
                                             //普通の配列を得連想配列に変換する
                                     }else{
-										exit('Still in the middle of an adventure!');
+										if($_POST['getdata']=='trip'){
+											$prepare=array("\"0\""=>"START_EVENT!",
+															"\"1\""=>"パーティのメンバーで旅の準備をしている最中です。",
+															"\"2\""=>"暫くしてから再度起動してみてください。");
+											//jsonとして出力
+											header('Content-type: application/json; charset=utf-8');
+											echo json_encode($prepare);//jsonをclientに出力
+										}
+										//旅に出してから一時間を経過しないとデータは送信しない
+										//print ('Still in the middle of an adventure!');
 									}
-                                    //$sql = $db->prepare($sql);
                                     $exists=true;//存在している
-                                    //continue;//あったら終わりで次の処理へ
                                 }
                             }
                             //アカウントがない場合は作成する
                             if(!$exists){
                                 //testなので3項目
-                                $sql = 'INSERT INTO '.$tb_name.' (acount,password,ghost,item,weapon,grove,armored,shoes,master,party1,party2,party3,party4) VALUES (:acount,:password,:ghost,:item,:weapon,:grove,:armored,:shoes,:master,:party1,:party2,:party3,:party4)';
+                                $sql = 'INSERT INTO '.$tb_name.' (a_time,acount,password) VALUES (:a_time,:acount,:password)';
                                 $sql = $db->prepare($sql);
-                                $param = array(':acount'=>$_POST['acount'],':password'=>$_POST['password'],':ghost'=>serialize($Ghost),':item'=>serialize($items),':weapon'=>serialize($weapons),':grove'=>serialize($gloves),':armored'=>serialize($armored),':shoes'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4));
+                                $param = array(':a_time'=>time(),':acount'=>$_POST['acount'],':password'=>$_POST['password']);
                                 $sql->execute($param);
                                 echo 'アカウントを作成しました';
                             }
@@ -515,7 +522,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			}else{
 				//$enemy_id=rand(3,24);//一回しか出ないおばけを選出
 				foreach($Ghos as $gho){
-					if($i >= 3 && $i <=24 && !$gho){
+					if($i >= 3 && $i <=24 && !$gho && $i!=12){
 						$enemy_id = $i;
 						continue;
 					}
@@ -591,13 +598,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 					$mess[] = 'START_EVENT!';
 					if($maste[7]>=5){
 						//echo ' : FP : '.$maste[7].' : ';
-						$mess[] = 'パーティのマスター'.$na2[0].'の信頼により全員のHPがそれぞれ'.intdiv($maste[7],5).'加算された！';
+						$mess[] = 'マスター「'.$na2[0].'」の魅力によりHPがそれぞれ'.intdiv($maste[7],5).'加算された！';
 					}
 				}
 				$mess[] = '【'.($battle_loop +1).'回戦中:第'.($i +1).'回戦】';
 				if($i==$battle_loop) {
 					$mess[] = "双方が疲弊してしまった。おばけはふらふらと逃げて行った。";
-					$mess[] = 'END_EVENT!';
+					//$mess[] = 'END_EVENT!';
 					//update_sql($mess,0);
 					break;
 				}
@@ -921,7 +928,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									//ded
 									if($hp1<1){
 										$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
-										$mess[] = 'END_EVENT!';
+										//$mess[] = 'END_EVENT!';
 										$otosimono=rand(0,20);
 										//1/20の確率で落とすので拾う
 										if($otosimono==0){
@@ -1103,10 +1110,10 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														case 2:	$gets=$gets.'歩雲履';	break;
 													}
 											}
-												$mess[] = 'STRAT_GET!';
+												$mess[] = 'START_EVENT!';
 												$mess[] = '何かを落とすのが見えた。拾ってみると'.$gets.'のようだ！';
 												$mess[] = '「'.$gets.'」をゲットした！';
-												$mess[] = 'END_GET!';
+												//$mess[] = 'END_GET!';
 										}
 										$battle_loop=$i;
 										update_sql($mess,$nu1,$mono,$emono,0);
@@ -1370,7 +1377,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										//ded
 										if($hp1<1){
 											$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化され正気に戻った。おばけは「".$na1."」だった。";
-											$mess[] = 'END_EVENT!';
+											//$mess[] = 'END_EVENT!';
 											$battle_loop=$i;
 											update_sql($mess,$nu1,100,100,0);
 											//update_sql($mess,$nu1);
@@ -1390,7 +1397,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 				}
 				if($count==$p){
 					$mess[] = 'パーティは全滅してしまった.....';
-					$mess[] = 'END_EVENT!';
+					//$mess[] = 'END_EVENT!';
 					$battle_loop=$i;
 					$nu1=1;
 					continue;
