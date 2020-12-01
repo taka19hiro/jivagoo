@@ -539,8 +539,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			$mono=100;
 			$emono=100;
 			$i=1;//カウント初期化
-			$ghosthp = rand(0,7);//おばけの場合の加算HP
-			$ghostap = rand(0,3);//おばけの場合の加算AP
+			$ghosthp = rand(1,7);//おばけの場合の加算HP
+			$ghostap = rand(1,7);//おばけの場合の加算AP
 			//出会うおばけを選出
 			if(rand(0,100)>3){
 				$enemy_id=rand(25,36);
