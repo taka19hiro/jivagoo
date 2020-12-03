@@ -27,7 +27,7 @@ $exists=false;
 //セッションの開始
 session_start();
 //イベントの発生件数
-$events = rand(1,9);
+$events = rand(1,8);
 //session init
 if(!isset($_SESSION['cpu'])){
     $_SESSION['cpu'] = '0';
@@ -194,17 +194,35 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                             foreach($sql as $row){
                                 if($row['acount']==$acount && $row['password']==$password){
                                     if(isset($_POST['end_code'])){
-                                        //end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
-                                        $sql = 'UPDATE '.$tb_name.' set a_time=:a_time,ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
-                                        $sql = $db->prepare($sql);
-                                        $param = array(':a_time'=>time(),':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
-                                        $sql->execute($param);
-										//冒険の関数をCall
-										if(time()>($row['a_time']+$interval)){//でもSET時間以内に何度も旅には出ない
-											battle($Ghost,$result,$master,$party1,$party2,$party3,$party4,$events);
+										if($master[8]>0){//0より大きい場合TP減算
+											$master[8]--;
 										}
-                                    }else if(time()>($row['a_time']+$interval)){//3600:1hour
-                                        //endでない場合でPOSTから1時間を経過していたらはserverのデータをappへ送る
+										if(time()>($row['a_time']+$interval)){//でもSET時間以内に何度も旅には出ない
+											//end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
+											$sql = 'UPDATE '.$tb_name.' set a_time=:a_time,ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
+											$sql = $db->prepare($sql);
+											$param = array(':a_time'=>time(),':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
+											$sql->execute($param);
+											//冒険の関数をCall
+											battle($Ghost,$result,$master,$party1,$party2,$party3,$party4,$events);
+										}else{
+											//SET時間内のアクセスの場合は旅に出ずにa_timeを除くステータスのみ更新する
+											if($local){//TRUE is English
+												$preparea=array("START_EVENT!",
+															"The members of the party are preparing for the trip.",
+															"Please try starting again after a while.");
+											}else{//FALSE is Japanese
+												$preparea=array("START_EVENT!",
+															"パーティのメンバーは旅の準備をしている最中です。",
+															"暫くしてから再度起動してみてください。");
+											}
+											$sql = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4,trip=:trip where id=:id';
+											$sql = $db->prepare($sql);
+											$param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':trip'=>serialize($preparea),':id'=>$row['id']);
+											$sql->execute($param);
+										}
+                                    }else{
+                                        //endでない場合はserverのデータをappへ送る
                                         switch($_POST['getdata']){
                                             //if getdata is ghost
                                             case 'ghost':
@@ -430,30 +448,19 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 												//jsonとして出力
 												header('Content-type: application/json');
 												echo json_encode($rowstrip);//jsonをclientに出力
+
+												//そしたら一旦NULLにしてみる
+												/*$sql = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
+												$sql = $db->prepare($sql);
+												$param = array(':trip'=>NULL,':id'=>$row['id']);
+												$sql->execute($param);*/
 											break;
                                                 default:
                                                 echo 'error:POST is not done correctly.';
                                         }
-                                            /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
-                                            //普通の配列を得連想配列に変換する
-                                    }else{
-										if($_POST['getdata']=='trip'){
-											if($local){//TRUE is English
-												$prepare=array("\"0\""=>"START_EVENT!",
-															"\"1\""=>"The members of the party are preparing for the trip.".$local,
-															"\"2\""=>"Please try starting again after a while.");
-											}else{//FALSE is Japanese
-												$prepare=array("\"0\""=>"START_EVENT!",
-															"\"1\""=>"パーティのメンバーは旅の準備をしている最中です。".$local,
-															"\"2\""=>"暫くしてから再度起動してみてください。");
-											}
-											//jsonとして出力
-											header('Content-type: application/json; charset=utf-8');
-											echo json_encode($prepare);//jsonをclientに出力
-										}
-										//旅に出してからSET時間を経過しないとデータは送信しない
-										//print ('Still in the middle of an adventure!');
-									}
+                                        /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
+                                        //普通の配列を得連想配列に変換する
+                                    }
                                     $exists=true;//存在している
                                 }
                             }
@@ -504,7 +511,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 }
 function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 	global $local;
-	print '--2nd local:'.$local.' --';
+	//print '--2nd local:'.$local.' --';
     //ghost name set array
     if($local){
 		$g_name=array(0=>0,1=>'Sayo.Akikawa',2=>'Ren.Mita',3=>'Urara.Ayase',4=>'Miu.Kira',5=>'Kiyomi.Kouchi',6=>'Kenmotu.Yokochi',
@@ -519,7 +526,7 @@ function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 		10=>'白井 あおい',11=>'中畑 修',12=>'綾瀬 社長',13=>'湯浅 五助',14=>'尼子 晴久',15=>'佐々 成政',16=>'武田 勝頼',17=>'上杉 景虎',18=>'松田 憲秀',
 		19=>'大内 義隆',20=>'朝倉 義景',21=>'陶 隆房',22=>'足利 義輝',23=>'大内 義長',24=>'別所 長治',25=>'幼いおばけ',26=>'実態不明のおばけ',
 		27=>'年老いたおばけ',
-		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'武者',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'犬');
+		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'侍',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'犬');
 	}
     //まずおばけと出会う
 	first($ghosts,$ene,$g_name,$mas,$par1,$par2,$par3,$par4,$loops);
@@ -527,20 +534,20 @@ function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 }
 function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 	global $local;
-	print '--3rd local:'.$local.' --';
-	$Ghos = $ghos;//おばけの場合の加算HP
-	$G_nam = $g_nam;//おばけの場合の加算AP
+	//print '--3rd local:'.$local.' --';
+	$Ghos = $ghos;
+	$G_nam = $g_nam;
 	$En = $en;
 	//Send Loop number loops
 	//print ' LOOP: '.$loop.' : ';
 	for($counts=0;$counts<$loop;$counts++){
 		//$type=rand(0,10);
 		if(1){//0,1=バトルの場合
-			$mono=100;
-			$emono=100;
+			//$mono=100;
+			//$emono=100;
 			$i=1;//カウント初期化
-			$ghosthp = rand(1,7);//おばけの場合の加算HP
-			$ghostap = rand(1,7);//おばけの場合の加算AP
+			$ghosthp = rand(1,9);//おばけの場合の乗算HP
+			$ghostap = rand(1,9);//おばけの場合の乗算AP
 			//出会うおばけを選出
 			if(rand(0,100)>3){
 				$enemy_id=rand(25,36);
@@ -548,24 +555,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 				$enemy_id=rand(3,24);//一回しか出ないおばけを選出
 				$num=0;
 				while($num<21){
-					if($Ghos[$enemy_id]==12 || $Ghos[$enemy_id]!=0){
+					if($Ghos[$enemy_id]==12 || $Ghos[$enemy_id]!=0){//今は綾瀬社長は出ない
 						$enemy_id=rand(3,24);
 					}else{
+						$ghosthp=$ghosthp*rand(1,3);//主要メンバなら更に倍にする
 					break;
 					}
 					$num++;
 				}
-				if($num>=21){
+				if($num>=21){//全部埋まってた場合
 					$enemy_id=rand(25,36);
 				}
-				/*foreach($Ghos as $gho){
-					if($i >= 3 && $i <=24 && $gho==0 && $i!=12){
-						$enemy_id = $i;
-					break;
-						//continue;
-					}
-					$i++;
-				}*/
 			}
 			//print 'Enemy id:'.$enemy_id.':';
 			//出会ったおばけのステータスを取得する
@@ -575,7 +575,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 					$na1 = $G_nam[$enemy_id];//get name
 					$hp1 = $ghost_on['HP']*$ghosthp;
 					$at1 = $ghost_on['AP']*$ghostap;
-					$de1 = $ghost_on['DP'];
+					$de1 = $ghost_on['DP']*$ghosthp;
 					$qu1 = $ghost_on['SP'];
 					$lu1 = $ghost_on['LP'];
 					$he1 = $ghost_on['TP'];
@@ -887,14 +887,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								}else{
 									$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
 								}
-								/*/tableTAG
-								echo '<br>'.$tabletag0;
-								//出力する
-								echo '<tr><th>'.$nu1.'</th><th>'.$na1.'</th><th>'.$le1.'</th><th>'.$hp1.'</th><th>'.$de1.'</th><th>'.$qu1.'</th><th>'.$lu1.'</th><th>'.$at1.'</th><th>'.$cu1.'</th><th>'.$he1.'</th><th>'.$sc1.'</th></tr>';
-								//出力する
-								echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
-								//tableTAG_END
-								echo '</table><br>';*/
 								//ded
 								if($hp2[$c]<1){
 									if($local){
@@ -976,8 +968,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									}else if($bom>=$qu1q1/4 && $bom <$qu1q1/2){
 										$b=rand(0,99);
 										if($b<74){
-										//quickOne();
-											
 											if($damage>0){
 												$damage=0;
 												if($local){
@@ -1078,14 +1068,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									}else{
 										$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
 									}
-									/*/tableTAG
-									echo '<br>'.$tabletag0;
-									//出力する
-									echo '<tr><th>'.$nu1.'</th><th>'.$na1.'</th><th>'.$le1.'</th><th>'.$hp1.'</th><th>'.$de1.'</th><th>'.$qu1.'</th><th>'.$lu1.'</th><th>'.$at1.'</th><th>'.$cu1.'</th><th>'.$he1.'</th><th>'.$sc1.'</th></tr>';
-									//出力する
-									echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
-									//tableTAG_END
-									echo '</table><br>';*/
 									//ded
 									if($hp1<1){
 										if($local){
@@ -1094,8 +1076,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
 										}
 										//$mess[] = 'END_EVENT!';
-										$otosimono=rand(0,20);
-										//1/20の確率で落とすので拾う
+										$otosimono=rand(0,2);
+										//1/3の確率で落とすので拾う
 										if($otosimono==0){
 											$mono=rand(0,1);
 											if($mono==1){
@@ -1110,8 +1092,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$emono=rand(0,15);
 															if($emono==15){
 																$emono=rand(0,15);
-																if($emono==15){
-																	$emono=rand(0,15);//1/759375
+																if($emono==15){//坂巻のネジは無しにしとく
+																	$emono=0;//1/759375
 																}
 															}
 														}
@@ -1165,8 +1147,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														if($emono>4){
 															$emono=rand(0,8);
 															if($emono>7){
-																$emono=rand(0,17);
-																if($emono>8){
+																$emono=rand(12,15);
+																if($emono==12){
 																	$emono=rand(0,17);
 																}
 															}
@@ -1246,14 +1228,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													}
 												break;
 												case 3:
-													$emono=rand(0,3);
+													$emono=rand(0,1);
 													if($emono!=0){
-														$emono=rand(0,3);
+														$emono=rand(0,1);
 														if($emono!=0){
-															$emono=rand(0,3);
+															$emono=rand(0,2);
 															if($emono!=0){
 																$emono=rand(0,3);
-																if($emono!=0){
+																if($emono>1){
 																	$emono=rand(0,3);
 																	if($emono>=1){
 																		$emono=rand(0,3);
@@ -1364,12 +1346,12 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										}
 										$battle_loop=$i;
 										if($otosimono==0){
-											update_sql($mess,$nu1,$mono,$emono,0);
+											update_sql(0,$nu1,$mono,$emono,0);
 										}else{
-											update_sql($mess,$nu1,100,100,0);
+											update_sql(0,$nu1,100,100,0);
 										}
-										break;
-										//continue;
+										//break;
+										continue 2;
 									}
 									//msg_firstsecondを空にしておく
 									$msg_firstsecond="";
@@ -1440,8 +1422,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									}else if($bom>=$qu2q2[$c] / 4 && $bom <$qu2q2[$c] / 2){
 										$b=rand(0,99);
 										if($b<74){
-										//quickOne();
-										
 											if($damage>0){
 												$damage=0;
 												if($local){
@@ -1487,7 +1467,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									}else{
 										$b=rand(0,99);
 										if($b<49){
-											//quickOne();
 											if($damage>0){
 												$damage=0;
 												if($local){
@@ -1542,14 +1521,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									}else{
 										$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
 									}
-									/*/tableTAG
-									echo '<br>'.$tabletag0;
-									//出力する
-									echo '<tr><th>'.$nu1.'</th><th>'.$na1.'</th><th>'.$le1.'</th><th>'.$hp1.'</th><th>'.$de1.'</th><th>'.$qu1.'</th><th>'.$lu1.'</th><th>'.$at1.'</th><th>'.$cu1.'</th><th>'.$he1.'</th><th>'.$sc1.'</th></tr>';
-									//出力する
-									echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
-									//tableTAG_END
-									echo '</table><br>';*/
 									//ded
 									if($hp2[$c]<1){
 										if($local){
@@ -1733,14 +1704,6 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										}else{
 											$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
 										}
-										/*/tableTAG
-										echo '<br>'.$tabletag0;
-										//出力する
-										echo '<tr><th>'.$nu1.'</th><th>'.$na1.'</th><th>'.$le1.'</th><th>'.$hp1.'</th><th>'.$de1.'</th><th>'.$qu1.'</th><th>'.$lu1.'</th><th>'.$at1.'</th><th>'.$cu1.'</th><th>'.$he1.'</th><th>'.$sc1.'</th></tr>';
-										//出力する
-										echo '<tr><th>'.$nu2[$c].'</th><th>'.$na2[$c].'</th><th>'.$le2[$c].'</th><th>'.$hp2[$c].'</th><th>'.$de2[$c].'</th><th>'.$qu2[$c].'</th><th>'.$lu2[$c].'</th><th>'.$at2[$c].'</th><th>'.$cu2[$c].'</th><th>'.$he2[$c].'</th><th>'.$sc2[$c].'</th></tr>';
-										//tableTAG_END
-										echo '</table>';*/
 										//ded
 										if($hp1<1){
 											if($local){
@@ -1750,9 +1713,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											//$mess[] = 'END_EVENT!';
 											$battle_loop=$i;
-											update_sql($mess,$nu1,100,100,0);
-											break;
-											//continue;
+											update_sql(0,$nu1,100,100,0);
+											//break;
+											continue 2;
 										}
 										//msg_firstsecondを空にしておく
 										$msg_firstsecond="";
@@ -1795,8 +1758,10 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 	//echo ' : '.$counts.'=='.$loop.' : ';
 }
 function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに書き込み
-	
-	//array_push($messeges,'END_EVENT!');
+	$items = [];
+	$ghost = [];
+	$message=$messeges;
+	//global value
 	global $host;
 	global $user;
 	global $pass;
@@ -1841,13 +1806,15 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 								$get_enemy[11]=0;
 								$get_enemy[12]=0;
 								$get_enemy[13]=0;
+								//CP
+								$Get_enemy_cp=$party['HP']+$party['DP']+$party['SP']+$party['LP']+$party['AP'];
 							}
 						}
 						//echo '  :acount:  '.$acount.' :PASS: '.$password;
 						foreach($player as $row){
 							if($row['acount']==$acount && $row['password']==$password){
 								if(!$type){
-									print ' : battle : ';
+									//print ' : battle : ';
 									$ghost = unserialize($row['ghost']);
 									for($i=0;$i<count($ghost);$i++){
 										if($i==($enemy_number-1)){
@@ -1857,36 +1824,50 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 									}
 									$party1= unserialize($row['party1']);
 									$party2= unserialize($row['party2']);
+									$p2_CP=$party2[2]+$party2[3]+$party2[4]+$party2[5]+$party2[6];
 									$party3= unserialize($row['party3']);
+									$p3_CP=$party3[2]+$party3[3]+$party3[4]+$party3[5]+$party3[6];
 									$party4= unserialize($row['party4']);
+									$p4_CP=$party4[2]+$party4[3]+$party4[4]+$party4[5]+$party4[6];
 									if(!$party1[0]){//party1にだれもセットされていないかったら
-										
 										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':party1'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
 									}else if(!$party2[0]){//party2にだれもセットされていないかったら
-										
 										$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
 									}else if(!$party3[0]){//party3にだれもセットされていないかったら
-										
 										$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
 									}else if(!$party4[0]){//party4にだれもセットされていないかったら
-										
 										$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
+									}else if($p4_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+											$m = $db->prepare($m);
+											$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
+											$m->execute($w);
+									}else if($p3_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party3=:part3 where id=:id';
+											$m = $db->prepare($m);
+											$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
+											$m->execute($w);
+									}else if($p2_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
+											$m = $db->prepare($m);
+											$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
+											$m->execute($w);
 									}
 									//落し物を拾っている場合
-									if($mon!=100&&$emo!=100){
-										print ' : hirotteru : ';
+									if($mon!=100 && $emo!=100){
+										//print ' : hirotteru : ';
 										switch($mon){
 											case 0:
 												$items = unserialize($row['item']);
@@ -1894,7 +1875,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													if($i==$emo){
 														$items[$i]++;
 													}
-													//$items[$i]=$items[$i];
 												}
 												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:item where id=:id';
 												$m = $db->prepare($m);
@@ -1907,7 +1887,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													if($i==$emo){
 														$items[$i]++;
 													}
-													//$items[$i]=$items[$i];
 												}
 												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:item where id=:id';
 												$m = $db->prepare($m);
@@ -1920,7 +1899,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													if($i==$emo){
 														$items[$i]++;
 													}
-													//$items[$i]=$items[$i];
 												}
 												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,grove=:item where id=:id';
 												$m = $db->prepare($m);
@@ -1933,7 +1911,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													if($i==$emo){
 														$items[$i]++;
 													}
-													//$items[$i]=$items[$i];
 												}
 												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,armored=:item where id=:id';
 												$m = $db->prepare($m);
@@ -1946,7 +1923,6 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													if($i==$emo){
 														$items[$i]++;
 													}
-													//$items[$i]=$items[$i];
 												}
 												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,shoes=:item where id=:id';
 												$m = $db->prepare($m);
@@ -1955,26 +1931,25 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 											break;
 										}
 									}else{
-										print ' : nongetitem : ';
+										//print ' : nongetitem : ';
 										$m  = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
 										$m->execute($w);
 									}
 								}else{
-									if($messeges=='Empty Array!'){
-										echo ' : Empty Array! : ';
+									if($message=='Empty Array!'){
+										//echo ' : Empty Array! : ';
 										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':trip'=>'',':id'=>$row['id']);
 										$m->execute($w);
 									}else{
-										echo ' : Messege Array! : ';
+										//echo ' : Messege Array! : ';
 										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':trip'=>serialize($messeges),':id'=>$row['id']);
+										$w = array(':trip'=>serialize($message),':id'=>$row['id']);
 										$m->execute($w);
-										session_destroy();
 									}
 								}
 							}
