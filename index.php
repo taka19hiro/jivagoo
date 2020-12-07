@@ -27,7 +27,7 @@ $exists=false;
 //セッションの開始
 session_start();
 //イベントの発生件数
-$events = rand(1,8);
+$events = rand(3,12);
 //session init
 if(!isset($_SESSION['cpu'])){
     $_SESSION['cpu'] = '0';
@@ -40,6 +40,9 @@ if(isset($_POST['local'])){
 }
 //interval time
 $interval = 3600;
+
+//TrustPoint init
+$TrustPoint = FALSE;
 
 //POSTされていない場合はその案内
 if ($_SERVER['REQUEST_METHOD']!='POST'){
@@ -196,6 +199,9 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     if(isset($_POST['end_code'])){
 										if($master[8]>0){//0より大きい場合TP減算
 											$master[8]--;
+											if($master>10){
+												$TrustPoint=TRUE;
+											}
 										}
 										if(time()>($row['a_time']+$interval)){//でもSET時間以内に何度も旅には出ない
 											//end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
@@ -526,20 +532,18 @@ function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 		10=>'白井 あおい',11=>'中畑 修',12=>'綾瀬 社長',13=>'湯浅 五助',14=>'尼子 晴久',15=>'佐々 成政',16=>'武田 勝頼',17=>'上杉 景虎',18=>'松田 憲秀',
 		19=>'大内 義隆',20=>'朝倉 義景',21=>'陶 隆房',22=>'足利 義輝',23=>'大内 義長',24=>'別所 長治',25=>'幼いおばけ',26=>'実態不明のおばけ',
 		27=>'年老いたおばけ',
-		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'侍',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'犬');
+		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'武者',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'犬');
 	}
     //まずおばけと出会う
 	first($ghosts,$ene,$g_name,$mas,$par1,$par2,$par3,$par4,$loops);
-    //var_dump($par1);
 }
 function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 	global $local;
-	//print '--3rd local:'.$local.' --';
+	//print ' : loop :'.$loop.' --';
 	$Ghos = $ghos;
 	$G_nam = $g_nam;
 	$En = $en;
 	//Send Loop number loops
-	//print ' LOOP: '.$loop.' : ';
 	for($counts=0;$counts<$loop;$counts++){
 		//$type=rand(0,10);
 		if(1){//0,1=バトルの場合
@@ -601,7 +605,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			//echo '--id:'.$nu2[1].'-name:'.$na2[1].'-HP:'.$hp2[1].'-AP:'.$at2[1].'-DP:'.$de2[1].'-SP:'.$qu2[1].'-LP:'.$lu2[1].'-TP:'.$he2[1].'-FP:'.$cu2[1].'-PP:'.$sc2[1];
 
 			//バトルの回数
-			$battle_loop=49;//50回で終了
+			$battle_loop=29;//30回で終了
 
 			//先制攻撃のフラグ
 			$first_attack=0;//一応FALSEで初期化
@@ -630,15 +634,33 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 					$count++;
 				}
 			}
-			//戦闘ループに入る
+			//戦闘ループに入る<=にしとかないと途中でおわるので駄目だよ！
 			for($i=0;$i<=$battle_loop;$i++){
 				if(!$i){
+					$place=rand(0,2);
 					$mess[] = 'START_EVENT!';
+					if($local){
+						switch($place){
+							case 0: $ev='in the shadow of a telephone pole!';break;
+							case 1: $ev='behind the mailbox!';break;
+							case 2: $ev='in the shadow of the shrine!';break;
+						}
+						$mess[] = 'When party was investigating the city of "dusk", I saw a ghost '.$ev;
+						$mess[] = 'The ghost is losing me! You can battle '.($battle_loop+1).' times!';
+					}else{
+						switch($place){
+							case 0: $ev='電柱の影';break;
+							case 1: $ev='郵便ポストの裏';break;
+							case 2: $ev='祠の奥';break;
+						}
+						$mess[] ='「夕暮れ」の街を調べていると'.$ev.'におばけが見えた！';
+						$mess[] = 'おばけは我を失っている！バトルは'.($battle_loop+1).'回行える！';
+					}
 					if($maste[7]>=5){
 						if($local){
-							$mess[] = 'HP has been added by "'.intdiv($maste[7],5).'" due to the charm of Master "'.$na2[0].'"!';
+							$mess[] = '!(^^)![BONUS!]HP has been added by "'.intdiv($maste[7],5).'" due to the charm of Master "'.$na2[0].'"!';
 						}else{
-							$mess[] = 'マスター「'.$na2[0].'」の魅力によりHPがそれぞれ'.intdiv($maste[7],5).'加算された！';
+							$mess[] = '!(^^)!【ボーナス！】マスター「'.$na2[0].'」の魅力によりHPがそれぞれ'.intdiv($maste[7],5).'加算された！';
 						}
 					}
 				}
@@ -1351,7 +1373,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											update_sql(0,$nu1,100,100,0);
 										}
 										//break;
-										continue 2;
+										continue 2;//ここから2つ前のループを抜ける
 									}
 									//msg_firstsecondを空にしておく
 									$msg_firstsecond="";
@@ -1715,7 +1737,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											$battle_loop=$i;
 											update_sql(0,$nu1,100,100,0);
 											//break;
-											continue 2;
+											continue 2;//ここから2つ目のループを抜ける
 										}
 										//msg_firstsecondを空にしておく
 										$msg_firstsecond="";
@@ -1747,15 +1769,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 		}
 	}
 	$mess=array_filter($mess, 'myFilter');//配列の空を取り除く
-	if($counts==$loop){
-		if(!empty($mess)){
-			update_sql($mess,$nu1,$mono,$emono,1);
-		}else{
-			update_sql('Empty Array!',$nu1,$mono,$emono,1);
-		}
+	if(!empty($mess)){
+		//echo ' : Called! counts: '.$counts.' : ';
+		update_sql($mess,$nu1,$mono,$emono,1);
+	}else{
+		//echo ' : Empty! : ';
+		update_sql('Empty Array!',$nu1,$mono,$emono,1);
 	}
-	//var_dump($mess);
-	//echo ' : '.$counts.'=='.$loop.' : ';
 }
 function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに書き込み
 	$items = [];
@@ -1770,6 +1790,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 	global $tb_ghost;
 	global $acount;
 	global $password;
+	global $TrustPoint;
 	try{
 		if($enemy_number){
 			//Sql connect
@@ -1788,7 +1809,48 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 						$player=$db->query($player);
 						$ghosttb = "SELECT * FROM ".$tb_ghost;
 						$ghosttb=$db->query($ghosttb);
-						//
+						//if $mon && $emo is !100
+						if($mon!=100 && $emo!=100){
+							switch($mon){
+							case 1://get weapon
+								$weapontb= "SELECT * FROM weapon_tb";
+								$weapontb=$db->query($weapontb);
+								foreach($weapontb as $weap){
+									if($weap['id']==($emo+1)){
+										$weapon = $weap;
+									}
+								}
+							break;
+							case 2://get glove
+								$glovetb= "SELECT * FROM glove_tb";
+								$glovetb=$db->query($glovetb);
+								foreach($glovetb as $glove){
+									if($glove['id']==($emo+1)){
+										$grove = $glove;
+									}
+								}
+							break;
+							case 3://get armor
+								$armortb= "SELECT * FROM armor_tb";
+								$armortb=$db->query($armortb);
+								foreach($armortb as $arm){
+									if($arm['id']==($emo+1)){
+										$armor = $arm;
+									}
+								}
+							break;
+							case 4://get shoes
+								$shoestb= "SELECT * FROM kutu_tb";
+								$shoestb=$db->query($shoestb);
+								foreach($shoestb as $kutu){
+									if($kutu['id']==($emo+1)){
+										$shoes = $kutu;
+									}
+								}
+							break;
+							}
+						}
+						//Getting Ghost Data
 						foreach($ghosttb as $party){
 							if($enemy_number==$party['id']){
 								//echo ' : $party["id"]='.$enemy_number.' : ';
@@ -1814,21 +1876,25 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 						foreach($player as $row){
 							if($row['acount']==$acount && $row['password']==$password){
 								if(!$type){
-									//print ' : battle : ';
+									//print ' : $Get_enemy_cp : '.$Get_enemy_cp.' : ';
 									$ghost = unserialize($row['ghost']);
 									for($i=0;$i<count($ghost);$i++){
 										if($i==($enemy_number-1)){
 											$ghost[$i]++;
 										}
-										//$ghost[$i]=$ghost[$i];
 									}
+									$master= unserialize($row['master']);
 									$party1= unserialize($row['party1']);
+									$p1_CP=$party1[2]+$party1[3]+$party1[4]+$party1[5]+$party1[6];
 									$party2= unserialize($row['party2']);
 									$p2_CP=$party2[2]+$party2[3]+$party2[4]+$party2[5]+$party2[6];
+									//print ' : $p2_CP : '.$p2_CP.' : ';
 									$party3= unserialize($row['party3']);
 									$p3_CP=$party3[2]+$party3[3]+$party3[4]+$party3[5]+$party3[6];
+									//print ' : $p3_CP : '.$p3_CP.' : ';
 									$party4= unserialize($row['party4']);
 									$p4_CP=$party4[2]+$party4[3]+$party4[4]+$party4[5]+$party4[6];
+									//print ' : $p4_CP : '.$p4_CP.' : ';
 									if(!$party1[0]){//party1にだれもセットされていないかったら
 										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
 										$m = $db->prepare($m);
@@ -1849,20 +1915,25 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										$m = $db->prepare($m);
 										$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
-									}else if($p4_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+									}else if($party1[0]&&$party1[0]>2&&$Get_enemy_cp>$p1_CP&&!$TrustPoint){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
 											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
+											$w = array(':party1'=>serialize($get_enemy),':id'=>$row['id']);
 											$m->execute($w);
-									}else if($p3_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
-											$m  = 'UPDATE '.$tb_name.' set party3=:part3 where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
-											$m->execute($w);
-									}else if($p2_CP<$Get_enemy_cp){//CP値が捕まえたエネミーの方が大きかったら差し替え
+									}else if($Get_enemy_cp>$p2_CP&&!$TrustPoint){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
 											$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
 											$m = $db->prepare($m);
 											$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
+											$m->execute($w);
+									}else if($Get_enemy_cp>$p3_CP&&!$TrustPoint){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
+											$m = $db->prepare($m);
+											$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
+											$m->execute($w);
+									}else if($Get_enemy_cp>$p4_CP&&!$TrustPoint){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+											$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+											$m = $db->prepare($m);
+											$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
 											$m->execute($w);
 									}
 									//落し物を拾っている場合
@@ -1881,53 +1952,256 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
 												$m->execute($w);
 											break;
-											case 1:
-												$items = unserialize($row['weapon']);
-												for($i=0;$i<count($items);$i++){
-													if($i==$emo){
-														$items[$i]++;
+											case 1://weapon
+												if(!$master[10]){
+													$master[10]=$weapon[0];
+													$master[3] =$master[3]+$weapon[2];
+													$master[4] =$master[4]+$weapon[3];
+													$master[6] =$master[6]+$weapon[4];
+													$master[7] =$master[7]+$weapon[5];
+													$master[8] =$master[8]+$weapon[6];
+													$master[9] =$master[9]+$weapon[7];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party1[10]){
+													$party1[10]=$weapon[0];
+													$party1[3] =$party1[3]+$weapon[2];
+													$party1[4] =$party1[4]+$weapon[3];
+													$party1[6] =$party1[6]+$weapon[4];
+													$party1[7] =$party1[7]+$weapon[5];
+													$party1[8] =$party1[8]+$weapon[6];
+													$party1[9] =$party1[9]+$weapon[7];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party2[10]){
+													$party2[10]=$weapon[0];
+													$party2[3] =$party2[3]+$weapon[2];
+													$party2[4] =$party2[4]+$weapon[3];
+													$party2[6] =$party2[6]+$weapon[4];
+													$party2[7] =$party2[7]+$weapon[5];
+													$party2[8] =$party2[8]+$weapon[6];
+													$party2[9] =$party2[9]+$weapon[7];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party3[10]){
+													$party3[10]=$weapon[0];
+													$party3[3] =$party3[3]+$weapon[2];
+													$party3[4] =$party3[4]+$weapon[3];
+													$party3[6] =$party3[6]+$weapon[4];
+													$party3[7] =$party3[7]+$weapon[5];
+													$party3[8] =$party3[8]+$weapon[6];
+													$party3[9] =$party3[9]+$weapon[7];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party4[10]){
+													$party4[10]=$weapon[0];
+													$party4[3] =$party4[3]+$weapon[2];
+													$party4[4] =$party4[4]+$weapon[3];
+													$party4[6] =$party4[6]+$weapon[4];
+													$party4[7] =$party4[7]+$weapon[5];
+													$party4[8] =$party4[8]+$weapon[6];
+													$party4[9] =$party4[9]+$weapon[7];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
+													$m->execute($w);
+												}else{
+													$items = unserialize($row['weapon']);
+													for($i=0;$i<count($items);$i++){
+														if($i==$emo){
+															$items[$i]++;
+														}
 													}
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:item where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
+													$m->execute($w);
 												}
-												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:item where id=:id';
-												$m = $db->prepare($m);
-												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-												$m->execute($w);
 											break;
-											case 2:
-												$items = unserialize($row['grove']);
-												for($i=0;$i<count($items);$i++){
-													if($i==$emo){
-														$items[$i]++;
+											case 2://glove
+												if(!$master[11]){
+													$master[11]=$grove[0];
+													$master[3] =$master[3]+$grove[2];
+													$master[4] =$master[4]+$grove[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party1[11]){
+													$party1[11]=$grove[0];
+													$party1[3] =$party1[3]+$grove[2];
+													$party1[4] =$party1[4]+$grove[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party2[11]){
+													$party2[11]=$grove[0];
+													$party2[3] =$party2[3]+$grove[2];
+													$party2[4] =$party2[4]+$grove[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party3[11]){
+													$party3[11]=$grove[0];
+													$party3[3] =$party3[3]+$grove[2];
+													$party3[4] =$party3[4]+$grove[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party4[11]){
+													$party4[11]=$grove[0];
+													$party4[3] =$party4[3]+$grove[2];
+													$party4[4] =$party4[4]+$grove[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
+													$m->execute($w);
+												}else{
+													$items = unserialize($row['grove']);
+													for($i=0;$i<count($items);$i++){
+														if($i==$emo){
+															$items[$i]++;
+														}
 													}
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,grove=:item where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
+													$m->execute($w);
 												}
-												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,grove=:item where id=:id';
-												$m = $db->prepare($m);
-												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-												$m->execute($w);
 											break;
 											case 3:
-												$items = unserialize($row['armored']);
-												for($i=0;$i<count($items);$i++){
-													if($i==$emo){
-														$items[$i]++;
+												if(!$master[12]){
+													$master[12]=$armor[0];
+													$master[3] =$master[3]+$armor[2];
+													$master[4] =$master[4]+$armor[3];
+													$master[5] =$master[5]+$armor[4];
+													$master[8] =$master[8]+$armor[5];
+													$master[9] =$master[9]+$armor[6];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party1[12]){
+													$party1[12]=$armor[0];
+													$party1[3] =$party1[3]+$armor[2];
+													$party1[4] =$party1[4]+$armor[3];
+													$party1[5] =$party1[5]+$armor[4];
+													$party1[8] =$party1[8]+$armor[5];
+													$party1[9] =$party1[9]+$armor[6];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party2[12]){
+													$party2[12]=$armor[0];
+													$party2[3] =$party2[3]+$armor[2];
+													$party2[4] =$party2[4]+$armor[3];
+													$party2[5] =$party2[5]+$armor[4];
+													$party2[8] =$party2[8]+$armor[5];
+													$party2[9] =$party2[9]+$armor[6];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party3[12]){
+													$party3[12]=$armor[0];
+													$party3[3] =$party3[3]+$armor[2];
+													$party3[4] =$party3[4]+$armor[3];
+													$party3[6] =$party3[5]+$armor[4];
+													$party3[8] =$party3[8]+$armor[5];
+													$party3[9] =$party3[9]+$armor[6];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party4[12]){
+													$party4[12]=$armor[0];
+													$party4[3] =$party4[3]+$armor[2];
+													$party4[4] =$party4[4]+$armor[3];
+													$party4[5] =$party4[5]+$armor[4];
+													$party4[8] =$party4[8]+$armor[5];
+													$party4[9] =$party4[9]+$armor[6];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
+													$m->execute($w);
+												}else{
+													$items = unserialize($row['armored']);
+													for($i=0;$i<count($items);$i++){
+														if($i==$emo){
+															$items[$i]++;
+														}
 													}
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,armored=:item where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
+													$m->execute($w);
 												}
-												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,armored=:item where id=:id';
-												$m = $db->prepare($m);
-												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-												$m->execute($w);
 											break;
-											case 4:
-												$items = unserialize($row['shoes']);
-												for($i=0;$i<count($items);$i++){
-													if($i==$emo){
-														$items[$i]++;
+											case 4://get shoes
+												if(!$master[13]){
+													$master[13]=$shoes[0];
+													$master[3] =$master[3]+$shoes[2];
+													$master[4] =$master[4]+$shoes[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party1[13]){
+													$party1[13]=$shoes[0];
+													$party1[3] =$party1[3]+$shoes[2];
+													$party1[4] =$party1[4]+$shoes[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party2[13]){
+													$party2[13]=$shoes[0];
+													$party2[3] =$party2[3]+$shoes[2];
+													$party2[4] =$party2[4]+$shoes[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party3[13]){
+													$party3[13]=$shoes[0];
+													$party3[3] =$party3[3]+$shoes[2];
+													$party3[4] =$party3[4]+$shoes[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
+													$m->execute($w);
+												}else if(!$party4[13]){
+													$party4[13]=$shoes[0];
+													$party4[3] =$party4[3]+$shoes[2];
+													$party4[4] =$party4[4]+$shoes[3];
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
+													$m->execute($w);
+												}else{
+													$items = unserialize($row['shoes']);
+													for($i=0;$i<count($items);$i++){
+														if($i==$emo){
+															$items[$i]++;
+														}
 													}
+													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,shoes=:item where id=:id';
+													$m = $db->prepare($m);
+													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
+													$m->execute($w);
 												}
-												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,shoes=:item where id=:id';
-												$m = $db->prepare($m);
-												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-												$m->execute($w);
 											break;
 										}
 									}else{
@@ -1945,7 +2219,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										$w = array(':trip'=>'',':id'=>$row['id']);
 										$m->execute($w);
 									}else{
-										//echo ' : Messege Array! : ';
+										//echo ' : Messege Array! : '.count($message);
 										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
 										$m = $db->prepare($m);
 										$w = array(':trip'=>serialize($message),':id'=>$row['id']);
