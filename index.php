@@ -1136,63 +1136,126 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										//Master is SAYO or REN or URARA
 										switch($nu2[0]){
 											case 1:
-												if($nu1>3&&$nu1<6||$nu1==10){
-													$mess[]='( ﾟДﾟ)！！！！！！';
-													$mess[]='あれ！どうしちゃったんだろ？';
-													$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
-													$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-													$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
-												}else if($nu1==3){
-													$mess[]='！！！';
-													$mess[]='あれ！どうしちゃったんだろ？';
-													$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
-													$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
-													$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
-												}else if($nu1>=6&&$nu1<=8){
-													$mess[]='！！！';
-													$mess[]='何事じゃぁ！どうした！';
-													$mess[]='あ！千代！大事無いかっ！';
-													$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
-													$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
-													$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
-												}else if($nu1==9){
-													$mess[]='！！！';
-													$mess[]='何事！あっ！';
-													$mess[]='姫！千代姫様！ご無事でしたか！';
-													$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
-													$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
-													$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+												if($local){
+													if($nu1>3&&$nu1<6||$nu1==10){
+														$mess[]='( ﾟДﾟ)!!!!!!!';
+														$mess[]='that! What happened?';
+														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+													}else if($nu1==3){
+														$mess[]='!!!';
+														$mess[]='that! What happened?';
+														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+													}else if($nu1>=6&&$nu1<=8){
+														$mess[]='!!!';
+														$mess[]='What the hell! What happened!';
+														$mess[]='Ah! Chiyo! Was it safe!';
+														$mess[]='Suddenly a strong warrior picked up '.$na2[0].' with a big hand.';
+														$mess[]='Uncle who does not know the strong side even if '.$na2[0].' looks closely (ﾟ Д ﾟ)';
+														$mess[]='Uncle or Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+													}else if($nu1==9){
+														$mess[]='!!!';
+														$mess[]='What! Ah!';
+														$mess[]='princess! Miss Chiyo! it safe!';
+														$mess[]='A young warrior with a fearless look kneels in front of '.$na2[0].'.';
+														$mess[]='An older brother who does not know even if '.$na2[0].' looks closely( ﾟДﾟ)';
+														$mess[]='Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+													}
+												}else{
+													if($nu1>3&&$nu1<6||$nu1==10){
+														$mess[]='( ﾟДﾟ)！！！！！！';
+														$mess[]='あれ！どうしちゃったんだろ？';
+														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
+														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+													}else if($nu1==3){
+														$mess[]='！！！';
+														$mess[]='あれ！どうしちゃったんだろ？';
+														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
+														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
+														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+													}else if($nu1>=6&&$nu1<=8){
+														$mess[]='！！！';
+														$mess[]='何事じゃぁ！どうした！';
+														$mess[]='あ！千代！大事無いかっ！';
+														$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
+														$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
+														$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+													}else if($nu1==9){
+														$mess[]='！！！';
+														$mess[]='何事！あっ！';
+														$mess[]='姫！千代姫様！ご無事でしたか！';
+														$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
+														$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
+														$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+													}
 												}
 											break;
 											case 2:
-												if($nu1>3&&$nu1<6||$nu1==10){
-													$mess[]='( ﾟДﾟ)！！！！！！';
-													$mess[]='あれ！どうしちゃったんだろ？';
-													$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
-													$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-													$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
-												}else if($nu1==3){
-													$mess[]='！！！';
-													$mess[]='あれ！どうしちゃったんだろ？';
-													$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
-													$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
-													$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+												if($local){
+													if($nu1>3&&$nu1<6||$nu1==10){
+														$mess[]='( ﾟДﾟ)!!!!!!!';
+														$mess[]='that! What happened?';
+														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+													}else if($nu1==3){
+														$mess[]='!!!';
+														$mess[]='that! What happened?';
+														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+													}
+												}else{
+													if($nu1>3&&$nu1<6||$nu1==10){
+														$mess[]='( ﾟДﾟ)！！！！！！';
+														$mess[]='あれ！どうしちゃったんだろ？';
+														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
+														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+													}else if($nu1==3){
+														$mess[]='！！！';
+														$mess[]='あれ！どうしちゃったんだろ？';
+														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
+														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
+														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+													}
 												}
 											break;
 											case 3:
-												if($nu1==11){
-													$mess[]='( ﾟДﾟ)！！！！！！';
-													$mess[]='あれ！どうしちゃったんだろ？';
-													$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
-													$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-													$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
-													$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+												if($local){
+													if($nu1==11){
+														$mess[]='( ﾟДﾟ)!!!!!!';
+														$mess[]='What happened?';
+														$mess[]='!!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was not happy...';
+													}
+												}else{
+													if($nu1==11){
+														$mess[]='( ﾟДﾟ)！！！！！！';
+														$mess[]='あれ！どうしちゃったんだろ？';
+														$mess[]='!!'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
+														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+														$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
+														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+													}
 												}
 										}
 										$otosimono=rand(0,2);
@@ -1831,63 +1894,126 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											//Master is SAYO or REN or URARA
 											switch($nu2[0]){
 												case 1:
-													if($nu1>3&&$nu1<6||$nu1==10){
-														$mess[]='( ﾟДﾟ)！！！！！！';
-														$mess[]='あれ！どうしちゃったんだろ？';
-														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
-														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
-													}else if($nu1==3){
-														$mess[]='！！！';
-														$mess[]='あれ！どうしちゃったんだろ？';
-														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
-														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
-														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
-													}else if($nu1>=6&&$nu1<=8){
-														$mess[]='！！！';
-														$mess[]='何事じゃぁ！どうした！';
-														$mess[]='あ！千代！大事無いかっ！';
-														$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
-														$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
-														$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
-													}else if($nu1==9){
-														$mess[]='！！！';
-														$mess[]='何事！あっ！';
-														$mess[]='姫！千代姫様！ご無事でしたか！';
-														$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
-														$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
-														$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+													if($local){
+														if($nu1>3&&$nu1<6||$nu1==10){
+															$mess[]='( ﾟДﾟ)!!!!!!!';
+															$mess[]='that! What happened?';
+															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+														}else if($nu1==3){
+															$mess[]='!!!';
+															$mess[]='that! What happened?';
+															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+														}else if($nu1>=6&&$nu1<=8){
+															$mess[]='!!!';
+															$mess[]='What the hell! What happened!';
+															$mess[]='Ah! Chiyo! Was it safe!';
+															$mess[]='Suddenly a strong warrior picked up '.$na2[0].' with a big hand.';
+															$mess[]='Uncle who does not know the strong side even if '.$na2[0].' looks closely (ﾟ Д ﾟ)';
+															$mess[]='Uncle or Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+														}else if($nu1==9){
+															$mess[]='!!!';
+															$mess[]='What! Ah!';
+															$mess[]='princess! Miss Chiyo! it safe!';
+															$mess[]='A young warrior with a fearless look kneels in front of '.$na2[0].'.';
+															$mess[]='An older brother who does not know even if '.$na2[0].' looks closely( ﾟДﾟ)';
+															$mess[]='Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+														}
+													}else{
+														if($nu1>3&&$nu1<6||$nu1==10){
+															$mess[]='( ﾟДﾟ)！！！！！！';
+															$mess[]='あれ！どうしちゃったんだろ？';
+															$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
+															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+															$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+														}else if($nu1==3){
+															$mess[]='！！！';
+															$mess[]='あれ！どうしちゃったんだろ？';
+															$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
+															$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
+															$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+														}else if($nu1>=6&&$nu1<=8){
+															$mess[]='！！！';
+															$mess[]='何事じゃぁ！どうした！';
+															$mess[]='あ！千代！大事無いかっ！';
+															$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
+															$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
+															$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+														}else if($nu1==9){
+															$mess[]='！！！';
+															$mess[]='何事！あっ！';
+															$mess[]='姫！千代姫様！ご無事でしたか！';
+															$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
+															$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
+															$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+														}
 													}
 												break;
 												case 2:
-													if($nu1>3&&$nu1<6||$nu1==10){
-														$mess[]='( ﾟДﾟ)！！！！！！';
-														$mess[]='あれ！どうしちゃったんだろ？';
-														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
-														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
-													}else if($nu1==3){
-														$mess[]='！！！';
-														$mess[]='あれ！どうしちゃったんだろ？';
-														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
-														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
-														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+													if($local){
+														if($nu1>3&&$nu1<6||$nu1==10){
+															$mess[]='( ﾟДﾟ)!!!!!!!';
+															$mess[]='that! What happened?';
+															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+														}else if($nu1==3){
+															$mess[]='!!!';
+															$mess[]='that! What happened?';
+															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+														}
+													}else{
+														if($nu1>3&&$nu1<6||$nu1==10){
+															$mess[]='( ﾟДﾟ)！！！！！！';
+															$mess[]='あれ！どうしちゃったんだろ？';
+															$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
+															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+															$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+														}else if($nu1==3){
+															$mess[]='！！！';
+															$mess[]='あれ！どうしちゃったんだろ？';
+															$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
+															$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
+															$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+														}
 													}
 												break;
 												case 3:
-													if($nu1==11){
-														$mess[]='( ﾟДﾟ)！！！！！！';
-														$mess[]='あれ！どうしちゃったんだろ？';
-														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
-														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
-														$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+													if($local){
+														if($nu1==11){
+															$mess[]='( ﾟДﾟ)!!!!!!';
+															$mess[]='What happened?';
+															$mess[]='!!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
+															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
+															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
+															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was not happy...';
+														}
+													}else{
+														if($nu1==11){
+															$mess[]='( ﾟДﾟ)！！！！！！';
+															$mess[]='あれ！どうしちゃったんだろ？';
+															$mess[]='!!'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
+															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
+															$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
+															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+														}
 													}
 											}
 											$battle_loop=$i;
