@@ -24,22 +24,16 @@ $pass = 'Masahiro4612*';
 //exists
 $exists=false;
 ////////////////////////////////////////
-//セッションの開始
-session_start();
+
 //イベントの発生件数
 $events = rand(3,12);
-//session init
-if(!isset($_SESSION['cpu'])){
-    $_SESSION['cpu'] = '0';
-    $_SESSION['memory'] = '0';
-    $_SESSION['benchi'] = '0';
-}
+
 //Language init
 if(isset($_POST['local'])){
 	$local = (bool)$_POST['local'];
 }
-//interval time
-$interval = 3600;
+//interval time: 3hours
+$interval = 10800;
 
 //TrustPoint init
 $TrustPoint = FALSE;
@@ -49,6 +43,14 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
     //ローカルからの接続の場合
     $iparray = explode(".", $ip);
     if($iparray[0] == '192' && $iparray[1] == '168' && $iparray[2] == '128'){
+		//セッションの開始
+		session_start();
+		//session init
+		if(!isset($_SESSION['cpu'])){
+			$_SESSION['cpu'] = '0';
+			$_SESSION['memory'] = '0';
+			$_SESSION['benchi'] = '0';
+		}
         //GETでremoveが送信されたら処理する
         if(isset($_GET['remove'])) {
             session_destroy();//セッションをクリア
@@ -199,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                                     if(isset($_POST['end_code'])){
 										if($master[8]>0){//0より大きい場合TP減算
 											$master[8]--;
-											if($master>10){
+											if($master[8]>10){
 												$TrustPoint=TRUE;
 											}
 										}
@@ -455,11 +457,7 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 												header('Content-type: application/json');
 												echo json_encode($rowstrip);//jsonをclientに出力
 
-												//そしたら一旦NULLにしてみる
-												/*$sql = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
-												$sql = $db->prepare($sql);
-												$param = array(':trip'=>NULL,':id'=>$row['id']);
-												$sql->execute($param);*/
+												//MySqlのこのテーブルはLONGTEXTにしないと書き込みに失敗する時が出てくる
 											break;
                                                 default:
                                                 echo 'error:POST is not done correctly.';
@@ -525,14 +523,16 @@ function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 		13=>'Gosuke.Yuasa',14=>'Haruhisa.Amago',15=>'Narimasa.Sassa',16=>'Katsuyori.Takeda',17=>'Kagetora.Uesugi',18=>'Norihide.Matsuda',
 		19=>'Yoshitaka.Ohuchi',20=>'Yoshikage.Asakura',21=>'Harukata.Sue',22=>'Yoshiteru.Ashikaga',23=>'Yoshinaga.Ohuchi',
 		24=>'Nagaharu.Bessyo',25=>'LittleGhost',26=>'UnKnowGhost',27=>'OldGhost',
-		28=>'PeasantFemale',29=>'PeasantMale',30=>'Female',31=>'Male',32=>'Samurai',33=>'Ashigaru',34=>'LittleMonk',35=>'Monk',36=>'Phantom');
+		28=>'PeasantFemale',29=>'PeasantMale',30=>'Female',31=>'Male',32=>'Samurai',33=>'Ashigaru',34=>'LittleMonk',35=>'Monk',36=>'Phantom',
+		37=>'1stAngel',38=>'2ndAngel',39=>'3rdAngel',40=>'4thAngel',41=>'5thAngel',42=>'LastAngel');
 	}else{
 		$g_name=array(0=>0,1=>'秋川 サヨ',2=>'三田 レン',3=>'綾瀬 うらら',4=>'吉良 美世',5=>'河内 キヨミ',6=>'横地 監物',7=>'大石 照基',8=>'金子 家重',
 		9=>'川下 士郎',
 		10=>'白井 あおい',11=>'中畑 修',12=>'綾瀬 社長',13=>'湯浅 五助',14=>'尼子 晴久',15=>'佐々 成政',16=>'武田 勝頼',17=>'上杉 景虎',18=>'松田 憲秀',
 		19=>'大内 義隆',20=>'朝倉 義景',21=>'陶 隆房',22=>'足利 義輝',23=>'大内 義長',24=>'別所 長治',25=>'幼いおばけ',26=>'実態不明のおばけ',
 		27=>'年老いたおばけ',
-		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'武者',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'怪人');
+		28=>'農民(女子)',29=>'農民(男子)',30=>'町民(女子)',31=>'町民(男子)',32=>'武者',33=>'足軽',34=>'小僧',35=>'僧侶',36=>'怪人',
+		37=>'地獄道への天子',38=>'餓鬼道への天子',39=>'畜生道への天子',40=>'修羅道への天子',41=>'人間道への天子',42=>'天道への天子');
 	}
     //まずおばけと出会う
 	first($ghosts,$ene,$g_name,$mas,$par1,$par2,$par3,$par4,$loops);
@@ -587,13 +587,26 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 		//$type=rand(0,10);
 		if(1){//0,1=バトルの場合
 			$i=1;//カウント初期化
-			$ghosthp = rand(1,10);//おばけの場合の乗算HP
-			$ghostap = rand(1,10);//おばけの場合の乗算AP
+			$ghosthp = rand(1,7);//おばけの場合の乗算HP
+			$ghostap = rand(1,7);//おばけの場合の乗算AP
 			//出会うおばけを選出
 			if(rand(0,100)>3){
 				$enemy_id=rand(25,36);
+				if($enemy_id==36){//怪人が天子を呼び出す
+					if($rowghost[2]&&$rowghost[5]&&$rowghost[6]&&$rowghost[7]&&$rowghost[8]&&$rowghost[11]&&rand(0,100)==0&&!$rowghost[37]){
+						$enemy_id=37;
+					}else if($rowghost[37]&&!$rowghost[38]&&rand(0,10)==0){
+						$enemy_id=38;
+					}else if($rowghost[37]&&$rowghost[38]&&!$rowghost[39]&&rand(0,10)==0){
+						$enemy_id=39;
+					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&!$rowghost[40]){
+						$enemy_id=40;
+					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&$rowghost[40]&&!$rowghost[41]){
+						$enemy_id=41;
+					}
+				}
 			}else{
-				$ghosthp=$ghosthp*rand(2,4);//主要メンバーならHPは更に倍
+				$ghosthp=$ghosthp*rand(1,4);//主要メンバーならHPは更に倍
 				$enemy_id=rand(3,24);//一回しか出ないおばけを選出
 				//count init
 				$icount=0;
@@ -606,6 +619,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 					}
 					$icount++;
 				}
+			}
+			if($enemy_id==12){
+				$enemy_id=rand(25,36);//綾瀬社長はまだ出現しない
 			}
 			//print 'Enemy id:'.$enemy_id.':';
 			//出会ったおばけのステータスを取得する
@@ -627,7 +643,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			//echo '--id:master:'.$maste[0].'-party1:'.$part1[0].'-part2:'.$part2[0];
 			$nu2 = array($maste[0],$part1[0],$part2[0],$part3[0],$part4[0]);
 			$na2 = array($g_nam[$maste[0]],$g_nam[$part1[0]],$g_nam[$part2[0]],$g_nam[$part3[0]],$g_nam[$part4[0]]);
-			$hp2 = array($maste[2],$part1[2]+intdiv($maste[7],5),$part2[2]+intdiv($maste[7],5),$part3[2]+intdiv($maste[7],5),$part4[2]+intdiv($maste[7],5));
+			$hp2 = array($maste[2]+intdiv($maste[7],5),$part1[2]+intdiv($maste[7],5),$part2[2]+intdiv($maste[7],5),$part3[2]+intdiv($maste[7],5),$part4[2]+intdiv($maste[7],5));
 			$at2 = array($maste[6],$part1[6],$part2[6],$part3[6],$part4[6]);
 			$de2 = array($maste[3],$part1[3],$part2[3],$part3[3],$part4[3]);
 			$qu2 = array($maste[4],$part1[4],$part2[4],$part3[4],$part4[4]);
@@ -673,24 +689,42 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			//戦闘ループに入る<=にしとかないと途中でおわるので駄目だよ！
 			for($i=0;$i<=$battle_loop;$i++){
 				if(!$i){
-					$place=rand(0,2);
+					if($enemy_id>36){
+						$place=3;
+					}else{
+						$place=rand(0,2);
+					}
 					$mess[] = 'START_EVENT!';
 					if($local){
 						switch($place){
 							case 0: $ev='in the shadow of a telephone pole!';break;
 							case 1: $ev='behind the mailbox!';break;
 							case 2: $ev='in the shadow of the shrine!';break;
+							case 3: $ev='in the halo that fell from heaven!';break;
 						}
-						$mess[] = 'When party was investigating the city of "dusk", I saw a ghost '.$ev;
-						$mess[] = 'The ghost is losing me! You can battle '.($battle_loop+1).' times!';
+						if($place==3){
+							$mess[] = 'When party was investigating the city of "dusk", I saw a Angel '.$ev;
+							$mess[] = 'The Angel is losing me! You can battle '.($battle_loop+1).' times!';
+						}else{
+							$mess[] = 'When party was investigating the city of "dusk", I saw a ghost '.$ev;
+							$mess[] = 'The ghost is losing me! You can battle '.($battle_loop+1).' times!';
+						}
 					}else{
 						switch($place){
 							case 0: $ev='電柱の影';break;
 							case 1: $ev='郵便ポストの裏';break;
 							case 2: $ev='祠の奥';break;
+							case 3: $ev='突然まばゆい光が天から落ち、後輪の中';break;
 						}
-						$mess[] ='「夕暮れ」の街を調べていると'.$ev.'におばけが見えた！';
-						$mess[] = 'おばけは我を失っている！バトルは'.($battle_loop+1).'回行える！';
+						if($place==3){
+							$mess[] ='逢魔が時の街を調べていると'.$ev.'に天子が見えた！';
+							$mess[] = 'うららが叫んだ！「私をおばけにしたこの世界の支配者だよ！」';
+							$mess[] = '天子は神々しくもその表情は恐怖を感じる程威圧的だ！';
+							$mess[] = 'バトルは'.($battle_loop+1).'回行える！さあ、天子を昇天させるチャンスだ！';
+						}else{
+							$mess[] ='逢魔が時の街を調べていると'.$ev.'におばけが見えた！';
+							$mess[] = 'おばけは我を失っている！バトルは'.($battle_loop+1).'回行える！';
+						}
 					}
 					if($maste[7]>=5){
 						if($local){
@@ -703,14 +737,22 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 				if($local){
 					$mess[] = '[Round '.($i +1).' of The '.($battle_loop +1).' Round]';
 					if($i==$battle_loop) {
-						$mess[] = "Both sides have become exhausted. The ghost ran away flutteringly.";
+						if($place==3){
+							$mess[] = "Both sides have become exhausted. The angel turned into light and went back to heaven.";
+						}else{
+							$mess[] = "Both sides have become exhausted. The ghost ran away flutteringly.";
+						}
 						break;
 					}
 
 				}else{
 					$mess[] = '【'.($battle_loop +1).'回戦中:第'.($i +1).'回戦】';
 					if($i==$battle_loop) {
-						$mess[] = "双方が疲弊してしまった。おばけはふらふらと逃げて行った。";
+						if($place==3){
+							$mess[] = 'パーティ全員はへとへとだった。天子も疲弊したらしく光となって天へ帰って行った。';
+						}else{
+							$mess[] = "双方が疲弊してしまった。おばけはふらふらと逃げて行った。";
+						}
 						break;
 					}
 				}
@@ -791,9 +833,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								$first_attack = 1;
 								//msgを出力
 								if($local){
-									$mess[] = '['.$na2[$c].'] is targeted! It is a Ghosts attack!';
+									if($place==3){
+										$mess[] = '['.$na2[$c].'] is targeted! It is The Angel attack!';
+									}else{
+										$mess[] = '['.$na2[$c].'] is targeted! It is a Ghosts attack!';
+									}
 								}else{
-									$mess[] = '「'.$na2[$c].'」が狙われている！おばけが飛びかかっていく！';
+									if($place==3){
+										$mess[] = '「'.$na2[$c].'」を天子が睨んだ！天子のオーラが包み込む！';
+									}else{
+										$mess[] = '「'.$na2[$c].'」が狙われている！おばけが飛びかかっていく！';
+									}
 								}
 
 								//攻撃がヒットするかの判定
@@ -808,17 +858,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									if($damage>0){
 										$damage=0;
 										if($local){
-											$msg_second = 'Ghost can not damage ['.$na2[$c].']!';
+											$msg_second = 'can not damage ['.$na2[$c].']!';
 										}else{
-											$msg_second = 'おばけは「'.$na2[$c].'」にダメージを与えられない！';
+											$msg_second = '「'.$na2[$c].'」は咄嗟に避けた！ダメージを与えられない！';
 										}
 									}else{
 										//攻撃力が二倍または四倍になった
 										if($uni_lucky1){
 											if($local){
-												$msg_firstsecond = 'Ghost inflicted "intense damage" on '.$na2[$c].'!!';
+												$msg_firstsecond = 'inflicted "intense damage" on '.$na2[$c].'!!';
 											}else{
-												$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【渾身の一撃】を放った！！';
+												$msg_firstsecond = '「'.$na2[$c].'」に【渾身の一撃】を放った！！';
 											}
 										}
 										//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -827,9 +877,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										}
 										$mdamage=$damage*-1;
 										if($local){
-											$msg_second = '['.$na2[$c].'] could not avoid the ghost attack!'.$mdamage.' damage!';
+											$msg_second = '['.$na2[$c].'] could not avoid attack!'.$mdamage.' damage!';
 										}else{
-											$msg_second = '「'.$na2[$c].'」はおばけの攻撃を受けてしまった！'.$mdamage.'のダメージ！';
+											$msg_second = '「'.$na2[$c].'」は攻撃を受けてしまった！'.$mdamage.'のダメージ！';
 										}
 									}
 									//ダメージを受けた分をhpから差し引く
@@ -856,9 +906,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											//攻撃力が二倍または四倍になった
 											if($uni_lucky1){
 												if($local){
-													$msg_firstsecond = 'Ghost inflicted "violent damage" on '.$na2[$c].'!!';
+													$msg_firstsecond = 'inflicted "violent damage" on '.$na2[$c].'!!';
 												}else{
-													$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【痛恨の一撃】を放った！！';
+													$msg_firstsecond = '「'.$na2[$c].'」に【痛恨の一撃】を放った！！';
 												}
 											}
 											//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -867,9 +917,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											$mdamage=$damage*-1;
 											if($local){
-												$msg_second = '['.$na2[$c].'] could not avoid the ghost attack!'.$mdamage.' damage!';
+												$msg_second = '['.$na2[$c].'] could not avoid attack!'.$mdamage.' damage!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」はおばけの攻撃を避けきれなかった！'.$mdamage.'のダメージ！';
+												$msg_second = '「'.$na2[$c].'」は攻撃を避けきれなかった！'.$mdamage.'のダメージ！';
 											}
 										}
 										//ダメージを受けた分をhpから差し引く
@@ -881,9 +931,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										}
 									}else{
 										if($local){
-											$msg_second = '['.$na2[$c].'] dodged the ghost attack!';
+											$msg_second = '['.$na2[$c].'] dodged attack!';
 										}else{
-											$msg_second = '「'.$na2[$c].'」はおばけの攻撃をかわした！';
+											$msg_second = '「'.$na2[$c].'」は攻撃をかわした！';
 										}
 									}
 								//それ未満なら５０%ヒットする
@@ -894,17 +944,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										if($damage>0){
 											$damage=0;
 											if($local){
-												$msg_second = 'Ghost attack did not hit ['.$na2[$c].']!';
+												$msg_second = 'attack did not hit ['.$na2[$c].']!';
 											}else{
-												$msg_second = 'おばけの攻撃は「'.$na2[$c].'」に当たらなかった！';
+												$msg_second = '攻撃は「'.$na2[$c].'」に当たらなかった！';
 											}
 										}else{
 											//攻撃力が二倍または四倍になった
 											if($uni_lucky1){
 												if($local){
-													$msg_firstsecond = 'Ghost inflicted "fierce damage" on '.$na2[$c].'!!';
+													$msg_firstsecond = 'inflicted "fierce damage" on '.$na2[$c].'!!';
 												}else{
-													$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【会心の一撃】を放った！！';
+													$msg_firstsecond = '「'.$na2[$c].'」に【会心の一撃】を放った！！';
 												}
 											}
 											//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -913,9 +963,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											$mdamage=$damage*-1;
 											if($local){
-												$msg_second = '['.$na2[$c].'] was attacked by a ghost!'.$mdamage.' damage!';
+												$msg_second = '['.$na2[$c].'] was attacked!'.$mdamage.' damage!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」はおばけの攻撃を受けてしまった！'.$mdamage.'のダメージ！';
+												$msg_second = '「'.$na2[$c].'」は攻撃を受けてしまった！'.$mdamage.'のダメージ！';
 											}
 										}
 										//ダメージを受けた分をhpから差し引く
@@ -928,9 +978,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										
 									}else{
 										if($local){
-											$msg_second = '['.$na2[$c].'] was able to avoid the ghost attack!';
+											$msg_second = '['.$na2[$c].'] was able to avoid attack!';
 										}else{
-											$msg_second = '「'.$na2[$c].'」はおばけの攻撃を避ける事ができた！';
+											$msg_second = '「'.$na2[$c].'」は攻撃を避ける事ができた！';
 										}
 									}
 								}
@@ -941,16 +991,24 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								
 								//二人のステータスを表示
 								if($local){
-									$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+									if($place==3){
+										$mess[] = ' --'.$na1.' HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+									}else{
+										$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+									}
 								}else{
-									$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+									if($place==3){
+										$mess[] = ' --'.$na1.'の残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+									}else{
+										$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+									}
 								}
 								//ded
 								if($hp2[$c]<1){
 									if($local){
-										$mess[] = '['.$na2[$c]."] lost to the Ghost.";
+										$mess[] = '['.$na2[$c]."] lost...";
 									}else{
-										$mess[] = '「'.$na2[$c]."」はおばけに敗北してしまった。";
+										$mess[] = '「'.$na2[$c]."」は敗北してしまった。";
 									}
 									$p++;
 								}
@@ -958,13 +1016,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								$msg_firstsecond="";
 							//素早さがパーティメンバーのほうが大きい場合
 							}else if($qu1<$qu2[$c] && !$first_attack ||$first_attack==1){
-								//マスターの魅力が9以下でマスターではない場合
-								if($sc2[0]<10&&$nu2[$c]!=$nu2[0]){
+								//マスターの魅力が9以下でマスターではない場合でマスターがサヨレン以外で仲間がサヨレンの知り合いでない場合
+								if($sc2[0]<10&&$nu2[$c]!=$nu2[0]&&$nu2[$c]>24&&$nu2[$c]<36){
 									if($local){
 										$mess[]= "[".$na2[$c]."] was frightend & hid behind [".$na2[0]."].......";
 										$mess[]= "[".$na2[$c]."] does not become a force!";
 									}else{
-										$mess[]= "「".$na2[$c]."」は「".$na2[0]."の後ろに怯えて隠れてしまった.......";
+										$mess[]= "「".$na2[$c]."」は「".$na2[0]."」の後ろに隠れてしまった.......";
 										$mess[]= "「".$na2[$c]."」は戦力にならない！";
 									}
 									//msg_firstsecondを空にしておく
@@ -991,15 +1049,15 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										if($damage>0){
 											$damage=0;
 											if($local){
-												$msg_second = 'The attack of ['.$na2[$c].'] has come off! The ghost was not damaged!';
+												$msg_second = 'The attack of ['.$na2[$c].'] has come off! not damaged!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」の攻撃は外れ、おばけにダメージを与えられない！';
+												$msg_second = '「'.$na2[$c].'」の攻撃は外れ、ダメージを与えられない！';
 											}
 										}else{
 											//攻撃力が二倍または四倍になった
 											if($uni_lucky2){
 												if($local){
-													$msg_firstsecond = '['.$na2[$c].'] inflicted "fierce damage" on the ghost!!';
+													$msg_firstsecond = '['.$na2[$c].'] inflicted "fierce damage"!!';
 												}else{
 													$msg_firstsecond = '「'.$na2[$c].'」は【渾身の一撃】を放った！！';
 												}
@@ -1010,9 +1068,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											$mdamage=$damage*-1;
 											if($local){
-												$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+												$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 											}else{
-												$msg_second = 'おばけに「'.$na2[$c].'」の一撃が放たれた！'.$mdamage.'のダメージ！';
+												$msg_second = '「'.$na2[$c].'」の一撃が放たれた！'.$mdamage.'のダメージ！';
 											}
 										}
 										//ダメージを受けた分をhpから差し引く
@@ -1037,7 +1095,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												//攻撃力が二倍または四倍になった
 												if($uni_lucky2){
 													if($local){
-														$msg_firstsecond = '['.$na2[$c].'] inflicted "violent damage" on the ghost!!';
+														$msg_firstsecond = '['.$na2[$c].'] inflicted "violent damage"!!';
 													}else{
 														$msg_firstsecond = '「'.$na2[$c].'」は【痛恨の一撃】を放った！！';
 													}
@@ -1048,9 +1106,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												}
 												$mdamage=$damage*-1;
 												if($local){
-													$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+													$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 												}else{
-													$msg_second = '「'.$na2[$c].'」の攻撃がおばけを捉えた！'.$mdamage.'のダメージ！';
+													$msg_second = '「'.$na2[$c].'」の攻撃が捉えた！'.$mdamage.'のダメージ！';
 												}
 											}
 											//ダメージを受けた分をhpから差し引く
@@ -1062,9 +1120,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 										}else{
 											if($local){
-												$msg_second = '['.$na2[$c].'] attack has been avoided by a ghost!';
+												$msg_second = '['.$na2[$c].'] attack has been avoided!';
 											}else{
-												$msg_second = 'おばけは「'.$na2[$c].'」の攻撃をひらりとかわした！';
+												$msg_second = '「'.$na2[$c].'」の攻撃はひらりとかわされた！';
 											}
 										}
 									//それ未満なら５０%ヒットする
@@ -1094,9 +1152,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												}
 												$mdamage=$damage*-1;
 												if($local){
-													$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+													$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 												}else{
-													$msg_second = 'おばけは「'.$na2[$c].'」の攻撃を喰らってしまった！'.$mdamage.'のダメージ！';
+													$msg_second = '「'.$na2[$c].'」の攻撃を喰らってしまった！'.$mdamage.'のダメージ！';
 												}
 											}
 											//ダメージを受けた分をhpから差し引く
@@ -1111,7 +1169,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											if($local){
 												$msg_second = '['.$na2[$c].'] attack has been avoided!';
 											}else{
-												$msg_second = 'おばけは「'.$na2[$c].'」の攻撃から逃げた！';
+												$msg_second = '「'.$na2[$c].'」の攻撃から逃げられた！';
 											}
 										}
 									}
@@ -1122,16 +1180,32 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									
 									//二人のステータスを表示
 									if($local){
-										$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										if($place==3){
+											$mess[] = ' --'.$na1.' HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										}else{
+											$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										}
 									}else{
-										$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										if($place==3){
+											$mess[] = ' --'.$na1.'の残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										}else{
+											$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										}
 									}
 									//ded
 									if($hp1<1){
 										if($local){
-											$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+											if($place==3){
+												$mess[] = $na1." was defeated by [".$na2[$c]."].Deported to God.";
+											}else{
+												$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+											}
 										}else{
-											$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+											if($place==3){
+												$mess[] = $na1."は「".$na2[$c]."」に敗北し、眩い光を伴って浄土へ送還された。";
+											}else{
+												$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+											}
 										}
 										//Master is SAYO or REN or URARA
 										switch($nu2[0]){
@@ -1414,19 +1488,19 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													if($emono!=0){
 														$emono=rand(0,1);
 														if($emono!=0){
-															$emono=rand(0,2);
+															$emono=rand(0,1);
 															if($emono!=0){
-																$emono=rand(0,3);
-																if($emono>1){
-																	$emono=rand(0,3);
+																$emono=rand(0,1);
+																if($emono!=0){
+																	$emono=rand(0,2);
 																	if($emono>=1){
-																		$emono=rand(0,3);
+																		$emono=rand(0,2);
 																		if($emono>=1){
-																			$emono=rand(0,3);
+																			$emono=rand(0,2);
 																			if($emono>=1){
-																				$emono=rand(0,3);
+																				$emono=rand(0,2);
 																				if($emono>=1){
-																					$emono=rand(0,3);
+																					$emono=rand(0,2);
 																					if($emono>=1){
 																						$emono=rand(0,3);
 																						if($emono==3){
@@ -1539,9 +1613,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 							//素早さが同じ場合
 							}else if($qu1 == $qu2[$c]){
 								if($local){
-									$mess[] = "Ghost & [".$na2[$c]."] are stuck together!";
+									$mess[] = "[".$na2[$c]."] are stuck together!";
 								}else{
-									$mess[] = "おばけと「".$na2[$c]."」は互いに動けないでいる！";
+									$mess[] = "「".$na2[$c]."」は互いに動けないでいる！";
 								}
 								//抽選するよ:５０％の確率
 								//素早さが同じでおばけから攻撃する場合
@@ -1550,9 +1624,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									$first_attack = 1;
 									//msgを出力
 									if($local){
-										$mess[] = '['.$na2[$c].'] is targeted! It is a Ghost attack!';
+										$mess[] = '['.$na2[$c].'] is targeted!';
 									}else{
-										$mess[] = 'おばけが飛びかかっていく！「'.$na2[$c].'」が狙われている！';
+										$mess[] = '「'.$na2[$c].'」が狙われている！';
 									}
 
 									//攻撃がヒットするかの判定
@@ -1567,17 +1641,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										if($damage>0){
 											$damage=0;
 											if($local){
-												$msg_second = 'Ghost attack did not hit ['.$na2[$c].']!';
+												$msg_second = 'attack did not hit ['.$na2[$c].']!';
 											}else{
-												$msg_second = 'おばけは「'.$na2[$c].'」への攻撃を外した！';
+												$msg_second = '「'.$na2[$c].'」への攻撃は外れた！';
 											}
 										}else{
 											//攻撃力が二倍または四倍になった
 											if($uni_lucky1){
 												if($local){
-													$msg_firstsecond = 'Ghost inflicted "fierce damage" on '.$na2[$c].'!!';
+													$msg_firstsecond = 'inflicted "fierce damage" on '.$na2[$c].'!!';
 												}else{
-													$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【渾身の一撃】を放った！！';
+													$msg_firstsecond = '「'.$na2[$c].'」に【渾身の一撃】を放った！！';
 												}
 											}
 											//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -1586,9 +1660,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											$mdamage=$damage*-1;
 											if($local){
-												$msg_second = 'Ghost blow hits ['.$na2[$c].']!'.$mdamage.' damage!';
+												$msg_second = 'blow hits ['.$na2[$c].']!'.$mdamage.' damage!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」におばけの一撃が命中する！'.$mdamage.'のダメージ！';
+												$msg_second = '「'.$na2[$c].'」に一撃が命中する！'.$mdamage.'のダメージ！';
 											}
 										}
 										//ダメージを受けた分をhpから差し引く
@@ -1605,17 +1679,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											if($damage>0){
 												$damage=0;
 												if($local){
-													$msg_second = 'Ghost attack did not hit ['.$na2[$c].']!';
+													$msg_second = 'attack did not hit ['.$na2[$c].']!';
 												}else{
-													$msg_second = 'おばけの「'.$na2[$c].'」への攻撃は空ぶった！';
+													$msg_second = '「'.$na2[$c].'」への攻撃は空ぶった！';
 												}
 											}else{
 												//攻撃力が二倍または四倍になった
 												if($uni_lucky1){
 													if($local){
-														$msg_firstsecond = 'Ghost inflicted "fierce damage" on '.$na2[$c].'!!';
+														$msg_firstsecond = 'inflicted "fierce damage" on '.$na2[$c].'!!';
 													}else{
-														$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【痛恨の一撃】を放った！！';
+														$msg_firstsecond = '「'.$na2[$c].'」に【痛恨の一撃】を放った！！';
 													}
 												}
 												//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -1638,9 +1712,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 										}else{
 											if($local){
-												$msg_second = '['.$na2[$c].'] dodged the ghost attack!';
+												$msg_second = '['.$na2[$c].'] dodged the attack!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」は見切ったおばけの攻撃をかわした！';
+												$msg_second = '「'.$na2[$c].'」は見切った攻撃をかわした！';
 											}
 										}
 									//それ未満なら５０%ヒットする
@@ -1650,17 +1724,17 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											if($damage>0){
 												$damage=0;
 												if($local){
-													$msg_second = 'Ghost attack did not hit ['.$na2[$c].']!';
+													$msg_second = 'attack did not hit ['.$na2[$c].']!';
 												}else{
-													$msg_second = 'おばけは「'.$na2[$c].'」に攻撃をしたが外れてしまった！';
+													$msg_second = '「'.$na2[$c].'」に攻撃をしたが外れてしまった！';
 												}
 											}else{
 												//攻撃力が二倍または四倍になった
 												if($uni_lucky1){
 													if($local){
-														$msg_firstsecond = 'Ghost inflicted "fierce damage" on '.$na2[$c].'!!';
+														$msg_firstsecond = 'inflicted "fierce damage" on '.$na2[$c].'!!';
 													}else{
-														$msg_firstsecond = 'おばけは「'.$na2[$c].'」に【会心の一撃】を放った！！';
+														$msg_firstsecond = '「'.$na2[$c].'」に【会心の一撃】を放った！！';
 													}
 												}
 												//攻撃を回避できなかった場合にはダメージ０にはしない
@@ -1684,9 +1758,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										
 										}else{
 											if($local){
-												$msg_second = '['.$na2[$c].'] dodged the ghost attack!';
+												$msg_second = '['.$na2[$c].'] dodged the attack!';
 											}else{
-												$msg_second = '「'.$na2[$c].'」はおばけの攻撃をかわした！';
+												$msg_second = '「'.$na2[$c].'」は攻撃をかわした！';
 											}
 										}
 									}
@@ -1697,16 +1771,24 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								
 									//二人のステータスを表示
 									if($local){
-										$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										if($place==3){
+											$mess[] = ' --'.$na1.' HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										}else{
+											$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+										}
 									}else{
-										$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										if($place==3){
+											$mess[] = ' --'.$na1.'の残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										}else{
+											$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+										}
 									}
 									//ded
 									if($hp2[$c]<1){
 										if($local){
-											$mess[] = '['.$na2[$c]."] lost to the Ghost.";
+											$mess[] = '['.$na2[$c]."] lost...";
 										}else{
-											$mess[] = '「'.$na2[$c]."」はおばけに負けてしまった。";
+											$mess[] = '「'.$na2[$c]."」は負けてしまった。";
 										}
 										$p++;
 									}
@@ -1714,13 +1796,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									$msg_firstsecond="";
 								//素早さが同じでパーティメンバーから攻撃する場合
 								}else {
-									//マスターの魅力が9以下でマスターではない場合
-									if($sc2[0]<10&&$nu2[$c]!=$nu2[0]){
+									//マスターの魅力が9以下でマスターではない場合でマスターがサヨかレン以外で仲間がサヨレンの知り合いではない場合
+									if($sc2[0]<10&&$nu2[$c]!=$nu2[0]&&$nu2[$c]>12&&$nu2[$c]<36){
 										if($local){
 											$mess[]= "[".$na2[$c]."] was frightend & hid behind [".$na2[0]."].......";
 											$mess[]= "[".$na2[$c]."] does not become a force!";
 										}else{
-											$mess[]= "「".$na2[$c]."」は"."「".$na2[0]."の後ろに怯えて隠れてしまった.......";
+											$mess[]= "「".$na2[$c]."」は"."「".$na2[0]."の後ろに隠れてしまった.......";
 											$mess[]= "「".$na2[$c]."」は戦力にならない！";
 										}
 										//msg_firstsecondを空にしておく
@@ -1749,13 +1831,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												if($local){
 													$msg_second = '['.$na2[$c].'] attack has been avoided!';
 												}else{
-													$msg_second = '「'.$na2[$c].'」の攻撃はおばけに見切られてしまった！';
+													$msg_second = '「'.$na2[$c].'」の攻撃は見切られている！';
 												}
 											}else{
 												//攻撃力が二倍または四倍になった
 												if($uni_lucky2){
 													if($local){
-														$msg_firstsecond = '['.$na2[$c].'] inflicted "intense damage" on the ghost!!';
+														$msg_firstsecond = '['.$na2[$c].'] inflicted "intense damage"!!';
 													}else{
 														$msg_firstsecond = '「'.$na2[$c].'」は【渾身の一撃】を放った！！';
 													}
@@ -1766,9 +1848,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												}
 												$mdamage=$damage*-1;
 												if($local){
-													$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+													$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 												}else{
-													$msg_second = 'おばけは「'.$na2[$c].'」から'.$mdamage.'のダメージを受けてしまった！';
+													$msg_second = '「'.$na2[$c].'」から'.$mdamage.'のダメージを受けてしまった！';
 												}
 											}
 											//ダメージを受けた分をhpから差し引く
@@ -1806,9 +1888,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													}
 													$mdamage=$damage*-1;
 													if($local){
-														$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+														$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 													}else{
-														$msg_second = 'おばけは「'.$na2[$c].'」からの攻撃で'.$mdamage.'のダメージを受けた！';
+														$msg_second = '「'.$na2[$c].'」からの攻撃で'.$mdamage.'のダメージを受けた！';
 													}
 												}
 												//ダメージを受けた分をhpから差し引く
@@ -1822,7 +1904,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												if($local){
 													$msg_second = '['.$na2[$c].'] attack did not hit!';
 												}else{
-													$msg_second = 'おばけは「'.$na2[$c].'」の攻撃を避けた！';
+													$msg_second = '「'.$na2[$c].'」の攻撃を避けた！';
 												}
 											}
 										//それ未満なら５０%ヒットする
@@ -1835,13 +1917,13 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													if($local){
 														$msg_second = '['.$na2[$c].'] attack has been avoided!';
 													}else{
-														$msg_second = '「'.$na2[$c].'」の攻撃はおばけにダメージを与えられない！';
+														$msg_second = '「'.$na2[$c].'」の攻撃はダメージを与えられない！';
 													}
 												}else{
 													//攻撃力が二倍または四倍になった
 													if($uni_lucky2){
 														if($local){
-															$msg_firstsecond = '['.$na2[$c].'] inflicted "intense damage" on the ghost!!';
+															$msg_firstsecond = '['.$na2[$c].'] inflicted "intense damage"!!';
 														}else{
 															$msg_firstsecond = '「'.$na2[$c].'」は【渾身の一撃】を放った！！';
 														}
@@ -1852,9 +1934,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													}
 													$mdamage=$damage*-1;
 													if($local){
-														$msg_second = 'Ghost was attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
+														$msg_second = 'attacked by ['.$na2[$c].']!'.$mdamage.' damage!';
 													}else{
-														$msg_second = 'おばけは「'.$na2[$c].'」の攻撃を喰らってしまった！'.$mdamage.'のダメージ！';
+														$msg_second = '「'.$na2[$c].'」の攻撃を喰らってしまった！'.$mdamage.'のダメージ！';
 													}
 												}
 												//ダメージを受けた分をhpから差し引く
@@ -1869,7 +1951,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												if($local){
 													$msg_second = '['.$na2[$c].'] attack has been avoided!';
 												}else{
-													$msg_second = 'おばけは「'.$na2[$c].'」の一撃を避ける事ができた！';
+													$msg_second = '「'.$na2[$c].'」の一撃を避ける事ができた！';
 												}
 											}
 										}
@@ -1880,16 +1962,32 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									
 										//二人のステータスを表示
 										if($local){
-											$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+											if($place==3){
+												$mess[] = ' --'.$na1.' HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+											}else{
+												$mess[] = ' --Ghost HP ['.$hp1.'] / '.$na2[$c].' HP ['.$hp2[$c].'] --';
+											}
 										}else{
-											$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+											if($place==3){
+												$mess[] = ' --'.$na1.'の残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+											}else{
+												$mess[] = ' --おばけの残HP【'.$hp1.'】対 '.$na2[$c].'の残HP【'.$hp2[$c].'】--';
+											}
 										}
 										//ded
 										if($hp1<1){
 											if($local){
-												$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+												if($place==3){
+													$mess[] = $na1." was defeated by [".$na2[$c]."].Deported to God.";
+												}else{
+													$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+												}
 											}else{
-												$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+												if($place==3){
+													$mess[] = $na1."は「".$na2[$c]."」に敗北し、眩い光を伴って浄土へ送還された。";
+												}else{
+													$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+												}
 											}
 											//Master is SAYO or REN or URARA
 											switch($nu2[0]){
@@ -2042,25 +2140,18 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 						$mess[] = 'パーティは全滅してしまった.....';
 					}
 					$battle_loop=$i;
-					//$nu1=1;
+					update_sql(0,$nu1,100,100,2);//$type=2を読んでmasterのPP値を減算
 					continue;
 				}
 			}
 		}
 	}
 	$mess=array_filter($mess, 'myFilter');//配列の空を取り除く
-	if(!empty($mess)){
-		//echo ' : Called! counts: '.$counts.' : ';
-		update_sql($mess,$nu1,100,100,1);
-	}else{
-		//echo ' : Empty! : ';
-		update_sql('Empty Array!',$nu1,100,100,1);
-	}
+	update_sql($mess,$nu1,100,100,1);//メッセージを書き込む
 }
 function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに書き込み
 	$items = [];
 	$ghost = [];
-	$message=$messeges;
 	//global value
 	global $host;
 	global $user;
@@ -2141,9 +2232,9 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 								$get_enemy[4]=$party['SP'];
 								$get_enemy[5]=$party['LP'];
 								$get_enemy[6]=$party['AP'];
-								$get_enemy[7]=$party['FP'];
-								$get_enemy[8]=$party['TP'];
-								$get_enemy[9]=$party['PP'];
+								$get_enemy[7]=$party['FP'];//好感度この値がHPとしてパーティ全員に振り分けられる
+								$get_enemy[8]=$party['TP'];//プレイヤーとの信頼度
+								$get_enemy[9]=$party['PP'];//マスターの時のマスターの信頼性
 								$get_enemy[10]=0;
 								$get_enemy[11]=0;
 								$get_enemy[12]=0;
@@ -2195,7 +2286,15 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										$m = $db->prepare($m);
 										$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
 										$m->execute($w);
-									}else if($party1[0]&&$party1[0]>11&&$Get_enemy_cp>$p1_CP&&!$TrustPoint){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+									}else if($party1[0]>2&&$get_enemy[0]==3||$party1[0]>10&&$Get_enemy_cp>$p1_CP&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party1[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party1[0]>10){
+										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+										for($ico=0;$ico<rand(5,10);$ico++){
+											$master[7]--;
+											if($master[7]<0){
+												$master[7]=0;
+											break;
+											}
+										}
 										if($party1[10]){
 											$items = unserialize($row['weapon']);
 											for($i=0;$i<count($items);$i++){
@@ -2246,7 +2345,15 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 											$w = array(':party1'=>serialize($get_enemy),':id'=>$row['id']);
 											$m->execute($w);
 										}
-									}else if($Get_enemy_cp>$p2_CP&&$party2[0]>11&&!$TrustPoint||!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6||!$TrustPoint&&$get_enemy[0]>9&&$get_enemy[0]<13){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+									}else if($party2[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p2_CP&&$party2[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party2[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party2[0]>10){
+										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+										for($ico=0;$ico<rand(5,10);$ico++){
+											$master[7]--;
+											if($master[7]<0){
+												$master[7]=0;
+											break;
+											}
+										}
 										if($party2[10]){
 											$items = unserialize($row['weapon']);
 											for($i=0;$i<count($items);$i++){
@@ -2297,7 +2404,15 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 											$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
 											$m->execute($w);
 										}
-									}else if($Get_enemy_cp>$p3_CP&&$party3[0]>11&&!$TrustPoint||!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6||!$TrustPoint&&$get_enemy[0]>9&&$get_enemy[0]<13){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+									}else if($party3[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p3_CP&&$party3[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party3[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party3[0]>10){
+										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+										for($ico=0;$ico<rand(5,10);$ico++){
+											$master[7]--;
+											if($master[7]<0){
+												$master[7]=0;
+											break;
+											}
+										}
 										if($party3[10]){
 											$items = unserialize($row['weapon']);
 											for($i=0;$i<count($items);$i++){
@@ -2348,7 +2463,15 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 											$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
 											$m->execute($w);
 										}
-									}else if($Get_enemy_cp>$p4_CP&&$party4[0]>11&&!$TrustPoint||!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6||!$TrustPoint&&$get_enemy[0]>9&&$get_enemy[0]<13){//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替え
+									}else if($party4[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p4_CP&&$party4[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party4[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party4[0]>10){
+										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+										for($ico=0;$ico<rand(5,10);$ico++){
+											$master[7]--;
+											if($master[7]<0){
+												$master[7]=0;
+											break;
+											}
+										}
 										if($party4[10]){
 											$items = unserialize($row['weapon']);
 											for($i=0;$i<count($items);$i++){
@@ -2417,7 +2540,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 												$m->execute($w);
 											break;
 											case 1://weapon
-												if(!$master[10]&&$enemy_number!=36){
+												if(!$master[10]){
 													$master[10]=$weapon[0];
 													$master[3] =$master[3]+$weapon[2];
 													$master[4] =$master[4]+$weapon[3];
@@ -2429,7 +2552,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party1[10]&&$enemy_number!=36){
+												}else if(!$party1[10]){
 													$party1[10]=$weapon[0];
 													$party1[3] =$party1[3]+$weapon[2];
 													$party1[4] =$party1[4]+$weapon[3];
@@ -2441,7 +2564,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party2[10]&&$enemy_number!=36){
+												}else if(!$party2[10]){
 													$party2[10]=$weapon[0];
 													$party2[3] =$party2[3]+$weapon[2];
 													$party2[4] =$party2[4]+$weapon[3];
@@ -2453,7 +2576,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party3[10]&&$enemy_number!=36){
+												}else if(!$party3[10]){
 													$party3[10]=$weapon[0];
 													$party3[3] =$party3[3]+$weapon[2];
 													$party3[4] =$party3[4]+$weapon[3];
@@ -2465,7 +2588,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party4[10]&&$enemy_number!=36){
+												}else if(!$party4[10]){
 													$party4[10]=$weapon[0];
 													$party4[3] =$party4[3]+$weapon[2];
 													$party4[4] =$party4[4]+$weapon[3];
@@ -2491,7 +2614,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 												}
 											break;
 											case 2://glove
-												if(!$master[11]&&$enemy_number!=36){
+												if(!$master[11]){
 													$master[11]=$grove[0];
 													$master[3] =$master[3]+$grove[2];
 													$master[4] =$master[4]+$grove[3];
@@ -2499,7 +2622,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party1[11]&&$enemy_number!=36){
+												}else if(!$party1[11]){
 													$party1[11]=$grove[0];
 													$party1[3] =$party1[3]+$grove[2];
 													$party1[4] =$party1[4]+$grove[3];
@@ -2507,7 +2630,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party2[11]&&$enemy_number!=36){
+												}else if(!$party2[11]){
 													$party2[11]=$grove[0];
 													$party2[3] =$party2[3]+$grove[2];
 													$party2[4] =$party2[4]+$grove[3];
@@ -2515,7 +2638,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party3[11]&&$enemy_number!=36){
+												}else if(!$party3[11]){
 													$party3[11]=$grove[0];
 													$party3[3] =$party3[3]+$grove[2];
 													$party3[4] =$party3[4]+$grove[3];
@@ -2523,7 +2646,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party4[11]&&$enemy_number!=36){
+												}else if(!$party4[11]){
 													$party4[11]=$grove[0];
 													$party4[3] =$party4[3]+$grove[2];
 													$party4[4] =$party4[4]+$grove[3];
@@ -2545,7 +2668,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 												}
 											break;
 											case 3:
-												if(!$master[12]&&$enemy_number!=36){
+												if(!$master[12]){
 													$master[12]=$armor[0];
 													$master[3] =$master[3]+$armor[2];
 													$master[4] =$master[4]+$armor[3];
@@ -2556,7 +2679,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party1[12]&&$enemy_number!=36){
+												}else if(!$party1[12]){
 													$party1[12]=$armor[0];
 													$party1[3] =$party1[3]+$armor[2];
 													$party1[4] =$party1[4]+$armor[3];
@@ -2567,7 +2690,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party2[12]&&$enemy_number!=36){
+												}else if(!$party2[12]){
 													$party2[12]=$armor[0];
 													$party2[3] =$party2[3]+$armor[2];
 													$party2[4] =$party2[4]+$armor[3];
@@ -2578,7 +2701,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party3[12]&&$enemy_number!=36){
+												}else if(!$party3[12]){
 													$party3[12]=$armor[0];
 													$party3[3] =$party3[3]+$armor[2];
 													$party3[4] =$party3[4]+$armor[3];
@@ -2589,7 +2712,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party4[12]&&$enemy_number!=36){
+												}else if(!$party4[12]){
 													$party4[12]=$armor[0];
 													$party4[3] =$party4[3]+$armor[2];
 													$party4[4] =$party4[4]+$armor[3];
@@ -2614,7 +2737,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 												}
 											break;
 											case 4://get shoes
-												if(!$master[13]&&$enemy_number!=36){
+												if(!$master[13]){
 													$master[13]=$shoes[0];
 													$master[3] =$master[3]+$shoes[2];
 													$master[4] =$master[4]+$shoes[3];
@@ -2622,7 +2745,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party1[13]&&$enemy_number!=36){
+												}else if(!$party1[13]){
 													$party1[13]=$shoes[0];
 													$party1[3] =$party1[3]+$shoes[2];
 													$party1[4] =$party1[4]+$shoes[3];
@@ -2630,7 +2753,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party2[13]&&$enemy_number!=36){
+												}else if(!$party2[13]){
 													$party2[13]=$shoes[0];
 													$party2[3] =$party2[3]+$shoes[2];
 													$party2[4] =$party2[4]+$shoes[3];
@@ -2638,7 +2761,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party3[13]&&$enemy_number!=36){
+												}else if(!$party3[13]){
 													$party3[13]=$shoes[0];
 													$party3[3] =$party3[3]+$shoes[2];
 													$party3[4] =$party3[4]+$shoes[3];
@@ -2646,7 +2769,7 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 													$m = $db->prepare($m);
 													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
 													$m->execute($w);
-												}else if(!$party4[13]&&$enemy_number!=36){
+												}else if(!$party4[13]){
 													$party4[13]=$shoes[0];
 													$party4[3] =$party4[3]+$shoes[2];
 													$party4[4] =$party4[4]+$shoes[3];
@@ -2675,20 +2798,29 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 										$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
 										$m->execute($w);
 									}
-								}else{
-									if($message=='Empty Array!'){
-										//echo ' : Empty Array! : ';
-										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
-										$m = $db->prepare($m);
-										$w = array(':trip'=>'',':id'=>$row['id']);
-										$m->execute($w);
-									}else{
-										//echo ' : Messege Array! : '.count($message);
-										$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
-										$m = $db->prepare($m);
-										$w = array(':trip'=>serialize($message),':id'=>$row['id']);
-										$m->execute($w);
+									for($ico=0;$ico<rand(1,4);$ico++){
+										$master[9]++;
 									}
+									$master[7]++;
+									$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+									$m = $db->prepare($m);
+									$w = array(':master'=>serialize($master),':id'=>$row['id']);
+									$m->execute($w);
+								}else if($type==1){
+									//echo ' : Messege Array! : '.count($message);
+									$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
+									$m = $db->prepare($m);
+									$w = array(':trip'=>serialize($messeges),':id'=>$row['id']);
+									$m->execute($w);
+								}else if($type==2){
+									$master=unserialize($row['master']);
+									if($master[9]>0){
+										$master[9]--;
+									}
+									$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+									$m = $db->prepare($m);
+									$w = array(':master'=>serialize($master),':id'=>$row['id']);
+									$m->execute($w);
 								}
 							}
 						}
