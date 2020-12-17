@@ -26,14 +26,14 @@ $exists=false;
 ////////////////////////////////////////
 
 //イベントの発生件数
-$events = rand(3,12);
+$events = rand(2,6);
 
 //Language init
 if(isset($_POST['local'])){
 	$local = (bool)$_POST['local'];
 }
-//interval time: 3hours
-$interval = 10800;
+//interval time: 3hours 10800
+$interval = 0;
 
 //TrustPoint init
 $TrustPoint = FALSE;
@@ -173,311 +173,303 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 				$shosess =explode("|",$_POST['shoses']);
 				$shoses=[];
 				foreach($shosess as $int_g){ $shoses[] = (int)$int_g; }
-				//$local = $_POST['local'];
             }            
             
             try{
                 //Sql connect
                 $db = new PDO($host,$user,$pass);
-        
-                //view databases
-                $sql = 'SHOW DATABASES';
-                $results = $db->query($sql);
-                //array loop
-                while ($result = $results->fetch(PDO::FETCH_NUM)){
-                    //Does the database exist(DBがあった場合)
-                    if($result[0]==$db_name){
-                        $sql = 'use '.$db_name;//DBを選択
-                        if($db->query($sql)){
-                            $sql = "SELECT * FROM ".$tb_name;
-                            $enemy = "SELECT * FROM ".$tb_ghost;
-                            $sql=$db->query($sql);
-							$enemy=$db->query($enemy);
-							$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
-
-                            //rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
-                            foreach($sql as $row){
-                                if($row['acount']==$acount && $row['password']==$password){
-                                    if(isset($_POST['end_code'])){
-										if($master[8]>0){//0より大きい場合TP減算
-											$master[8]--;
-											if($master[8]>10){
-												$TrustPoint=TRUE;
-											}
+                $sql = 'use '.$db_name;//DBを選択
+                    if($db->query($sql)){
+						//POSTされたアカウントとパスワードでテーブルをGET
+						$sql = "SELECT * FROM ".$tb_name." where acount=\"".$acount."\" and password=\"".$password."\"";
+						//ghostのテーブルもGET
+                        $enemy = "SELECT * FROM ".$tb_ghost;
+						$rows=$db->query($sql);
+						$rows = $rows->fetchAll();//$rowsのテーブルをデータ化しておく
+						$enemy=$db->query($enemy);
+						$result = $enemy->fetchAll();//$enemyのテーブルをデータ化しておく
+						//テーブルのGETに成功していたら
+                        if(!empty($rows[0])){
+							$row=$rows[0];//$rows[0]がGETしたテーブルのROWになっている
+							$rowmaster=unserialize($row['master']);
+							///////////////////////////////////////////
+                            if(isset($_POST['end_code'])){
+								if($master[8]>0){//0より大きい場合TP減算
+									$master[8]--;
+									if($master[8]>10){
+										$TrustPoint=TRUE;//TPが10より小さいとマスターの好きなようにする
+									}
+								}
+								if(time()>($row['a_time']+$interval)){//でもSET時間以内に何度も旅には出ない
+									//end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
+									$sql = 'UPDATE '.$tb_name.' set a_time=:a_time,ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
+									$sql = $db->prepare($sql);
+									$param = array(':a_time'=>time(),':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
+									$sql->execute($param);
+									//冒険の関数をCall
+									battle($Ghost,$result,$master,$party1,$party2,$party3,$party4,$events);
+								}else{
+									//SET時間内のアクセスの場合は旅に出ずにa_timeを除くステータスのみ更新する
+									if($local){//TRUE is English
+										$preparea=array("START_EVENT!",
+													"The members of the party are preparing for the trip.",
+													"Please try starting again after a while.");
+									}else{//FALSE is Japanese
+										$preparea=array("START_EVENT!",
+													"パーティのメンバーは旅に必要なパラメータの回復に至っていません。",
+													"最初の出発から3時間以上の経過が必要です。");
+									}
+									$sql = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4,trip=:trip where id=:id';
+									$sql = $db->prepare($sql);
+									$param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':trip'=>serialize($preparea),':id'=>$row['id']);
+									$sql->execute($param);
+								}
+                            }else{
+                                //endでない場合はserverのデータをappへ送る
+                                switch($_POST['getdata']){
+                                    //if getdata is ghost
+                                    case 'ghost':
+										$rowghost = unserialize($row['ghost']);//Sqlのシリアライズを戻す
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowghosts=[];
+										foreach($rowghost as $rows){
+											$rowghosts[] = (string)$rows;
 										}
-										if(time()>($row['a_time']+$interval)){//でもSET時間以内に何度も旅には出ない
-											//end_codeが送られてきた場合はステータスをUPDATEしてserverでの冒険を始める
-											$sql = 'UPDATE '.$tb_name.' set a_time=:a_time,ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4 where id=:id';
-											$sql = $db->prepare($sql);
-											$param = array(':a_time'=>time(),':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':id'=>$row['id']);
-											$sql->execute($param);
-											//冒険の関数をCall
-											battle($Ghost,$result,$master,$party1,$party2,$party3,$party4,$events);
-										}else{
-											//SET時間内のアクセスの場合は旅に出ずにa_timeを除くステータスのみ更新する
-											if($local){//TRUE is English
-												$preparea=array("START_EVENT!",
-															"The members of the party are preparing for the trip.",
-															"Please try starting again after a while.");
-											}else{//FALSE is Japanese
-												$preparea=array("START_EVENT!",
-															"パーティのメンバーは旅の準備をしている最中です。",
-															"暫くしてから再度起動してみてください。");
-											}
-											$sql = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:items,weapon=:weapons,grove=:gloves,armored=:armored,shoes=:shoses,master=:master,party1=:party1,party2=:party2,party3=:party3,party4=:party4,trip=:trip where id=:id';
-											$sql = $db->prepare($sql);
-											$param = array(':ghost'=>serialize($Ghost),':items'=>serialize($items),':weapons'=>serialize($weapons),':gloves'=>serialize($gloves),':armored'=>serialize($armored),':shoses'=>serialize($shoses),':master'=>serialize($master),':party1'=>serialize($party1),':party2'=>serialize($party2),':party3'=>serialize($party3),':party4'=>serialize($party4),':trip'=>serialize($preparea),':id'=>$row['id']);
-											$sql->execute($param);
-										}
-                                    }else{
-                                        //endでない場合はserverのデータをappへ送る
-                                        switch($_POST['getdata']){
-                                            //if getdata is ghost
-                                            case 'ghost':
-												$rowghost = unserialize($row['ghost']);//Sqlのシリアライズを戻す
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowghosts=[];
-												foreach($rowghost as $rows){
-													$rowghosts[] = (string)$rows;
-												}
-                                                $keyghost = array_keys($rowghost);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keyghost);$i++){
-                                                    $keysghost[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsghost = array_combine($keysghost,$rowghosts);
-                                                
-                                                //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsghost);//jsonをclientに出力
-                                            break;
-                                            //if getdata is master
-                                            case 'master':
-												$rowmaster= unserialize($row['master']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowmasters=[];
-												foreach($rowmaster as $rows){
-													$rowmasters[] = (string)$rows;
-												}
-                                                $keymaster = array_keys($rowmaster);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keymaster);$i++){
-                                                    $keysmaster[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsmaster = array_combine($keysmaster,$rowmasters);
-                                                                                                    //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsmaster);//jsonをclientに出力
-                                            break;
-                                            //if getdata is party1
-                                            case 'party1':
-												$rowparty1= unserialize($row['party1']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowparty1s=[];
-												foreach($rowparty1 as $rows){
-													$rowparty1s[] = (string)$rows;
-												}
-                                                $keyparty1 = array_keys($rowparty1);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keyparty1);$i++){
-                                                    $keysparty1[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsparty1 = array_combine($keysparty1,$rowparty1s);
-                                                    
-                                                //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsparty1);//jsonをclientに出力
-                                            break;
-                                            case 'party2':
-												$rowparty2= unserialize($row['party2']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowparty2s=[];
-												foreach($rowparty2 as $rows){
-													$rowparty2s[] = (string)$rows;
-												}
-                                                $keyparty2 = array_keys($rowparty2);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keyparty2);$i++){
-                                                    $keysparty2[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsparty2 = array_combine($keysparty2,$rowparty2s);
-                                                    
-                                                //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsparty2);//jsonをclientに出力
-                                            break;
-                                            case 'party3':
-												$rowparty3= unserialize($row['party3']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowparty3s=[];
-												foreach($rowparty3 as $rows){
-													$rowparty3s[] = (string)$rows;
-												}
-                                                $keyparty3 = array_keys($rowparty3);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keyparty3);$i++){
-                                                    $keysparty3[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsparty3 = array_combine($keysparty3,$rowparty3s);
-                                                    
-                                                //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsparty3);//jsonをclientに出力
-                                            break;
-                                            case 'party4':
-												$rowparty4= unserialize($row['party4']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowparty4s=[];
-												foreach($rowparty4 as $rows){
-													$rowparty4s[] = (string)$rows;
-												}
-                                                $keyparty4 = array_keys($rowparty4);//配列のキーを取り出しておく
-                                                //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-                                                for($i=0;$i<count($keyparty4);$i++){
-                                                    $keysparty4[$i] = '"'.$i.'"';
-                                                }
-                                                //配列をjson用に連想配列に作り直しておく
-                                                $rowsparty4 = array_combine($keysparty4,$rowparty4s);
-                                                    
-                                                //jsonとして出力
-                                                header('Content-type: application/json');
-                                                echo json_encode($rowsparty4);//jsonをclientに出力
-											break;
-											case 'items':
-												$rowitem= unserialize($row['item']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowitems=[];
-												foreach($rowitem as $rows){
-													$rowitems[] = (string)$rows;
-												}
-												$keyitem = array_keys($rowitem);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keyitem);$i++){
-													$keysitem[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowsitem = array_combine($keysitem,$rowitems);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowsitem);//jsonをclientに出力
-											break;
-											case 'weapons':
-												$rowweapon= unserialize($row['weapon']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowweapons=[];
-												foreach($rowweapon as $rows){
-													$rowweapons[] = (string)$rows;
-												}
-												$keyweapon = array_keys($rowweapon);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keyweapon);$i++){
-													$keysweapon[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowsweapon = array_combine($keysweapon,$rowweapons);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowsweapon);//jsonをclientに出力
-											break;
-											case 'gloves':
-												$rowgrove= unserialize($row['grove']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowgroves=[];
-												foreach($rowgrove as $rows){
-													$rowgroves[] = (string)$rows;
-												}
-												$keygrove = array_keys($rowgrove);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keygrove);$i++){
-													$keysgrove[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowsgrove = array_combine($keysgrove,$rowgroves);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowsgrove);//jsonをclientに出力
-											break;
-											case 'armored':
-												$rowarmored= unserialize($row['armored']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowarmoreds=[];
-												foreach($rowarmored as $rows){
-													$rowarmoreds[] = (string)$rows;
-												}
-												$keyarmored = array_keys($rowarmored);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keyarmored);$i++){
-													$keysarmored[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowsarmored = array_combine($keysarmored,$rowarmoreds);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowsarmored);//jsonをclientに出力
-											break;
-											case 'shoses':
-												$rowshoes= unserialize($row['shoes']);
-												//配列はintなのでjsonで送れるstring配列に変換する
-												$rowshoess=[];
-												foreach($rowshoes as $rows){
-													$rowshoess[] = (string)$rows;
-												}
-												$keyshoes = array_keys($rowshoes);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keyshoes);$i++){
-													$keysshoes[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowsshoes = array_combine($keysshoes,$rowshoess);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowsshoes);//jsonをclientに出力
-											break;
-											case 'trip':
-												$rowtrip= unserialize($row['trip']);
-												$keytrip = array_keys($rowtrip);//配列のキーを取り出しておく
-												//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
-												for($i=0;$i<count($keytrip);$i++){
-													$keystrip[$i] = '"'.$i.'"';
-												}
-												//配列をjson用に連想配列に作り直しておく
-												$rowstrip = array_combine($keystrip,$rowtrip);
-													
-												//jsonとして出力
-												header('Content-type: application/json');
-												echo json_encode($rowstrip);//jsonをclientに出力
-
-												//MySqlのこのテーブルはLONGTEXTにしないと書き込みに失敗する時が出てくる
-											break;
-                                                default:
-                                                echo 'error:POST is not done correctly.';
+                            	        $keyghost = array_keys($rowghost);//配列のキーを取り出しておく
+                        	            //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keyghost);$i++){
+                                            $keysghost[$i] = '"'.$i.'"';
                                         }
-                                        /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
-                                        //普通の配列を得連想配列に変換する
-                                    }
-                                    $exists=true;//存在している
+                                        //配列をjson用に連想配列に作り直しておく
+                                        $rowsghost = array_combine($keysghost,$rowghosts);
+                                                
+                                        //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsghost);//jsonをclientに出力
+                                    break;
+                                    //if getdata is master
+                                    case 'master':
+										$rowmaster= unserialize($row['master']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowmasters=[];
+										foreach($rowmaster as $rows){
+											$rowmasters[] = (string)$rows;
+										}
+                                        $keymaster = array_keys($rowmaster);//配列のキーを取り出しておく
+                            	        //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keymaster);$i++){
+                                            $keysmaster[$i] = '"'.$i.'"';
+                                        }
+                                        //配列をjson用に連想配列に作り直しておく
+                                        $rowsmaster = array_combine($keysmaster,$rowmasters);
+                                                                                                    //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsmaster);//jsonをclientに出力
+                                    break;
+                                    //if getdata is party1
+                                    case 'party1':
+										$rowparty1= unserialize($row['party1']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowparty1s=[];
+										foreach($rowparty1 as $rows){
+											$rowparty1s[] = (string)$rows;
+										}
+                                        $keyparty1 = array_keys($rowparty1);//配列のキーを取り出しておく
+                                        //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keyparty1);$i++){
+                                            $keysparty1[$i] = '"'.$i.'"';
+                                        }
+                                        //配列をjson用に連想配列に作り直しておく
+                                        $rowsparty1 = array_combine($keysparty1,$rowparty1s);
+                                                    
+                                        //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsparty1);//jsonをclientに出力
+                                    break;
+                                    case 'party2':
+										$rowparty2= unserialize($row['party2']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowparty2s=[];
+										foreach($rowparty2 as $rows){
+											$rowparty2s[] = (string)$rows;
+										}
+                                        $keyparty2 = array_keys($rowparty2);//配列のキーを取り出しておく
+                                        //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keyparty2);$i++){
+                                            $keysparty2[$i] = '"'.$i.'"';
+                                        }
+                                        //配列をjson用に連想配列に作り直しておく
+                                        $rowsparty2 = array_combine($keysparty2,$rowparty2s);
+                                                   
+                                	    //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsparty2);//jsonをclientに出力
+                                    break;
+                                    case 'party3':
+										$rowparty3= unserialize($row['party3']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowparty3s=[];
+										foreach($rowparty3 as $rows){
+											$rowparty3s[] = (string)$rows;
+										}
+                                        $keyparty3 = array_keys($rowparty3);//配列のキーを取り出しておく
+                                        //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keyparty3);$i++){
+                                            $keysparty3[$i] = '"'.$i.'"';
+                                        }
+                                    	//配列をjson用に連想配列に作り直しておく
+                                        $rowsparty3 = array_combine($keysparty3,$rowparty3s);
+                                                    
+                                        //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsparty3);//jsonをclientに出力
+                                    break;
+                                    case 'party4':
+										$rowparty4= unserialize($row['party4']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowparty4s=[];
+										foreach($rowparty4 as $rows){
+											$rowparty4s[] = (string)$rows;
+										}
+                                        $keyparty4 = array_keys($rowparty4);//配列のキーを取り出しておく
+                                        //取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+                                        for($i=0;$i<count($keyparty4);$i++){
+                                            $keysparty4[$i] = '"'.$i.'"';
+                                        }
+                                        //配列をjson用に連想配列に作り直しておく
+                                        $rowsparty4 = array_combine($keysparty4,$rowparty4s);
+                                                    
+                                        //jsonとして出力
+                                        header('Content-type: application/json');
+                                        echo json_encode($rowsparty4);//jsonをclientに出力
+									break;
+									case 'items':
+										$rowitem= unserialize($row['item']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowitems=[];
+										foreach($rowitem as $rows){
+											$rowitems[] = (string)$rows;
+										}
+										$keyitem = array_keys($rowitem);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keyitem);$i++){
+											$keysitem[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowsitem = array_combine($keysitem,$rowitems);
+													
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowsitem);//jsonをclientに出力
+									break;
+									case 'weapons':
+										$rowweapon= unserialize($row['weapon']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowweapons=[];
+										foreach($rowweapon as $rows){
+											$rowweapons[] = (string)$rows;
+										}
+										$keyweapon = array_keys($rowweapon);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keyweapon);$i++){
+											$keysweapon[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowsweapon = array_combine($keysweapon,$rowweapons);
+													
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowsweapon);//jsonをclientに出力
+									break;
+									case 'gloves':
+										$rowgrove= unserialize($row['grove']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowgroves=[];
+										foreach($rowgrove as $rows){
+											$rowgroves[] = (string)$rows;
+										}
+										$keygrove = array_keys($rowgrove);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keygrove);$i++){
+											$keysgrove[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowsgrove = array_combine($keysgrove,$rowgroves);
+												
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowsgrove);//jsonをclientに出力
+									break;
+									case 'armored':
+										$rowarmored= unserialize($row['armored']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowarmoreds=[];
+										foreach($rowarmored as $rows){
+											$rowarmoreds[] = (string)$rows;
+										}
+										$keyarmored = array_keys($rowarmored);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keyarmored);$i++){
+											$keysarmored[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowsarmored = array_combine($keysarmored,$rowarmoreds);
+												
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowsarmored);//jsonをclientに出力
+									break;
+									case 'shoses':
+										$rowshoes= unserialize($row['shoes']);
+										//配列はintなのでjsonで送れるstring配列に変換する
+										$rowshoess=[];
+										foreach($rowshoes as $rows){
+											$rowshoess[] = (string)$rows;
+										}
+										$keyshoes = array_keys($rowshoes);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keyshoes);$i++){
+											$keysshoes[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowsshoes = array_combine($keysshoes,$rowshoess);
+													
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowsshoes);//jsonをclientに出力
+									break;
+									case 'trip':
+										$rowtrip= unserialize($row['trip']);
+										$keytrip = array_keys($rowtrip);//配列のキーを取り出しておく
+										//取り出したキーの分だけ文字列でキーをjson配列用に作り直しておく
+										for($i=0;$i<count($keytrip);$i++){
+											$keystrip[$i] = '"'.$i.'"';
+										}
+										//配列をjson用に連想配列に作り直しておく
+										$rowstrip = array_combine($keystrip,$rowtrip);
+													
+										//jsonとして出力
+										header('Content-type: application/json');
+										echo json_encode($rowstrip);//jsonをclientに出力
+
+										//MySqlのこのテーブルはLONGTEXTにしないと書き込みに失敗する時が出てくる
+									break;
+                                    default:
+                                        echo 'error:POST is not done correctly.';
                                 }
+                                /*  配列のままだとjsonにしても配列で作成されるのでjsonで受け取れない*/
+                                //普通の配列を得連想配列に変換する
                             }
-                            //アカウントがない場合は作成する
-                            if(!$exists){
-                                //testなので3項目
-                                $sql = 'INSERT INTO '.$tb_name.' (a_time,acount,password) VALUES (:a_time,:acount,:password)';
-                                $sql = $db->prepare($sql);
-                                $param = array(':a_time'=>(time()-($interval*2)),':acount'=>$_POST['acount'],':password'=>$_POST['password']);
-                                $sql->execute($param);
-                                //echo 'アカウントを作成しました';
-                            }
+                            $exists=true;//存在している
                         }
+                    //アカウントがない場合は作成する
+                    if(!$exists){
+                        //testなので3項目
+                        $sql = 'INSERT INTO '.$tb_name.' (a_time,acount,password) VALUES (:a_time,:acount,:password)';
+                        $sql = $db->prepare($sql);
+                        $param = array(':a_time'=>(time()-($interval*2)),':acount'=>$_POST['acount'],':password'=>$_POST['password']);
+                        $sql->execute($param);
+                        //echo 'アカウントを作成しました';
                     }
                 }
                 //close mysql
@@ -488,10 +480,6 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
                 exit;
             }
         }
-		//echo 'No.......POST....';
-        //終了コードが送られてきた場合：勝手に冒険が始まりログインするまでサーバのゲームシステムに依存
-        //端末のGPSの移動距離を元にサーバMapを移動してイベントを発生させる
-
     }else{//AndroidからappcodeがPOSTされていないなら不正ログインなのでアプリの情報を表示する
         echo '
         <html><head><title>GostScan Server</title>
@@ -515,7 +503,6 @@ if ($_SERVER['REQUEST_METHOD']!='POST'){
 }
 function battle($ghosts,$ene,$mas,$par1,$par2,$par3,$par4,$loops){
 	global $local;
-	//print '--2nd local:'.$local.' --';
     //ghost name set array
     if($local){
 		$g_name=array(0=>0,1=>'Sayo.Akikawa',2=>'Ren.Mita',3=>'Urara.Ayase',4=>'Miu.Kira',5=>'Kiyomi.Kouchi',6=>'Kenmotu.Yokochi',
@@ -546,33 +533,45 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 	global $tb_name;
 	global $acount;
 	global $password;
+	global $rowmaster;
+	global $items;
 	$G_nam = $g_nam;
 	$En = $en;
+	//main menber default 3
+	$main = 3;
+	//落し物の分母1だと1/2で2だと1/3
+	$ic = rand(2,4);
+	//おばけの乗算最大値デフォルト7
+	if($rowmaster[6]<30){
+		$gdw= 1;
+		$gup= 7;
+	}else if($rowmaster[6]>=30&&$rowmaster[6]<50){
+		$gdw= 2;
+		$gup= 7;
+	}else{
+		$gdw= 3;
+		$gup= 7;
+	}
 	//Send Loop number loops
 	for($counts=0;$counts<$loop;$counts++){
 		if(!$counts){
 			$rowghost=$ghos;
 		}else{
 			try{
-				//connect DB
-				$db = new PDO($host,$user,$pass);
-				$sql = 'SHOW DATABASES';
-				$results = $db->query($sql);
-				//array loop
-				while ($result = $results->fetch(PDO::FETCH_NUM)){
-					//Does the database exist(DBがあった場合)
-					if($result[0]==$db_name){
-						$sql = 'use '.$db_name;//DBを選択
-						if($db->query($sql)){
-							$sql = "SELECT * FROM ".$tb_name;
-							$sql=$db->query($sql);
-							//rowを$sqlから取り出して送られたacountとpasswordが照合するものがあるか調べる
-							foreach($sql as $row){
-								if($row['acount']==$acount && $row['password']==$password){
-									$rowghost = unserialize($row['ghost']);//Sqlのシリアライズを戻す
-								}
-							}
-						}
+                //Sql connect
+                $db = new PDO($host,$user,$pass);
+                $sql = 'use '.$db_name;//DBを選択
+                if($db->query($sql)){
+					//POSTされたアカウントとパスワードでテーブルをGET
+					$sql = "SELECT * FROM ".$tb_name." where acount=\"".$acount."\" and password=\"".$password."\"";
+					$sql=$db->query($sql);
+					$rows = $sql->fetchAll();//$enemyのテーブルをデータ化しておく
+					if(!empty($rows[0])){
+						$row=$rows[0];//$rows[0]がGETしたテーブルのROWになっている
+						$rowmaster= unserialize($row['master']);
+						$rowghost= unserialize($row['ghost']);
+						$items= unserialize($row['item']);
+						//print ' :tubo kazu:'. $rowitem[16]. ' :ghost kazu :'. array_sum($rowghost);
 					}
 				}
 				//exit sql
@@ -583,26 +582,32 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 				exit;
 			}
 		}
-	
+		//count ghost
+		$g_count=array_sum($rowghost);
+		//count tubo
+		$t_count=$items[16]-$g_count;
+		if($t_count<=0){
+			$t_count=0;
+		}
 		//$type=rand(0,10);
 		if(1){//0,1=バトルの場合
 			$i=1;//カウント初期化
-			$ghosthp = rand(1,7);//おばけの場合の乗算HP
-			$ghostap = rand(1,7);//おばけの場合の乗算AP
+			$ghosthp = rand($gdw,$gup);//おばけの場合の乗算HP
+			$ghostap = rand($gdw,$gup);//おばけの場合の乗算AP
 			//出会うおばけを選出
-			if(rand(0,100)>3){
+			if(rand(0,100)>$main){
 				$enemy_id=rand(25,36);
 				if($enemy_id==36){//怪人が天子を呼び出す
-					if($rowghost[2]&&$rowghost[5]&&$rowghost[6]&&$rowghost[7]&&$rowghost[8]&&$rowghost[11]&&rand(0,100)==0&&!$rowghost[37]){
+					if(rand(0,20)==0&&$rowghost[2]&&$rowghost[5]&&$rowghost[6]&&$rowghost[7]&&$rowghost[8]&&$rowghost[11]&&rand(0,30)==0&&!$rowghost[37]){
 						$enemy_id=37;
-					}else if($rowghost[37]&&!$rowghost[38]&&rand(0,10)==0){
+					}else if($rowghost[37]&&!$rowghost[38]&&rand(0,20)==0){
 						$enemy_id=38;
 					}else if($rowghost[37]&&$rowghost[38]&&!$rowghost[39]&&rand(0,10)==0){
 						$enemy_id=39;
-					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&!$rowghost[40]){
+					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&!$rowghost[40]&&rand(0,1)==0){
 						$enemy_id=40;
-					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&$rowghost[40]&&!$rowghost[41]){
-						$enemy_id=41;
+					}else if($rowghost[37]&&$rowghost[38]&&$rowghost[39]&&$rowghost[40]&&!$rowghost[41]&&rand(0,1)==0){
+						$enemy_id=41;//こいつ倒したら富士山にタワーが現れる
 					}
 				}
 			}else{
@@ -648,9 +653,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			$de2 = array($maste[3],$part1[3],$part2[3],$part3[3],$part4[3]);
 			$qu2 = array($maste[4],$part1[4],$part2[4],$part3[4],$part4[4]);
 			$lu2 = array($maste[5],$part1[5],$part2[5],$part3[5],$part4[5]);
-			$he2 = array($maste[8],$part1[8],$part2[8],$part3[8],$part4[8]);
-			$cu2 = array($maste[7],$part1[7],$part2[7],$part3[7],$part4[7]);
-			$sc2 = array($maste[9],$part1[9],$part2[9],$part3[9],$part4[9]);
+			$he2 = array($maste[8],$part1[8],$part2[8],$part3[8],$part4[8]);//プレイヤーとの信頼度
+			$cu2 = array($maste[7],$part1[7],$part2[7],$part3[7],$part4[7]);//魅力
+			$sc2 = array($maste[9],$part1[9],$part2[9],$part3[9],$part4[9]);//memberからの信頼度
 
 			$at2_bk=$at2;
 			$de2_bk=$de2;
@@ -688,6 +693,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 			}
 			//戦闘ループに入る<=にしとかないと途中でおわるので駄目だよ！
 			for($i=0;$i<=$battle_loop;$i++){
+				$nf=0;
 				if(!$i){
 					if($enemy_id>36){
 						$place=3;
@@ -1019,12 +1025,15 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 								//マスターの魅力が9以下でマスターではない場合でマスターがサヨレン以外で仲間がサヨレンの知り合いでない場合
 								if($sc2[0]<10&&$nu2[$c]!=$nu2[0]&&$nu2[$c]>24&&$nu2[$c]<36){
 									if($local){
-										$mess[]= "[".$na2[$c]."] was frightend & hid behind [".$na2[0]."].......";
-										$mess[]= "[".$na2[$c]."] does not become a force!";
+										$mess[]= "[".$na2[$c]."] does not come out of the soul sleep jar.......";
+										$mess[]= "[".$na2[$c]."] seems to have lost his fighting spirit!";
 									}else{
-										$mess[]= "「".$na2[$c]."」は「".$na2[0]."」の後ろに隠れてしまった.......";
-										$mess[]= "「".$na2[$c]."」は戦力にならない！";
+										$mess[]= "「".$na2[$c]."」は魂眠の壺から出てこない.......";
+										$mess[]= "「".$na2[$c]."」は戦意を失っているようだ！";
 									}
+									$hp2[$c]=0;
+									$nf=1;
+									$p++;
 									//msg_firstsecondを空にしておく
 									$msg_firstsecond="";
 								}else{
@@ -1199,12 +1208,35 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 												$mess[] = $na1." was defeated by [".$na2[$c]."].Deported to God.";
 											}else{
 												$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+												if(!$t_count){
+													$mess[] = 'have to give up picking up "'.$na1.' Soul Fragments" because there are not enough "Soul Sleeping Pots".';
+												}else if($t_count==1){
+													$mess[] = $na2[0].'picks up the falling '.$na1.'"Soul Fragment" and puts it in the "Soul Sleeping jar" to release '.$na1.' from the spell.';
+													$mess[] = 'Master '.$na2[0].' has added '.$na1.' to its collection.';
+													$mess[] = 'used all the "soul sleep jars".';
+												}else{
+													$mess[] = $na2[0].'picks up the falling '.$na1.'"Soul Fragment" and puts it in the "Soul Sleeping jar" to release '.$na1.' from the spell.';
+													$mess[] = 'Master '.$na2[0].' has added '.$na1.' to its collection.';
+													$mess[] = 'used one of the remaining　'.$t_count.' "Soul Sleeping jar".';
+												}
+												
 											}
 										}else{
 											if($place==3){
 												$mess[] = $na1."は「".$na2[$c]."」に敗北し、眩い光を伴って浄土へ送還された。";
 											}else{
 												$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+												if(!$t_count){
+													$mess[] = '「魂眠の壺」の数が足らないので'.$na1.'の「魂のかけら」を拾うのをあきらめざるをえない。';
+												}else if($t_count==1){
+													$mess[] = $na2[0].'は落ちている'.$na1.'の「魂のかけら」を拾い「魂眠の壺」に入れて'.$na1.'を呪縛から解放する。';
+													$mess[] = 'マスター'.$na2[0].'は'.$na1.'をコレクションに加えた。';
+													$mess[] = '魂眠の壺を全て使ってしまった。';
+												}else{
+													$mess[] = $na2[0].'は落ちている'.$na1.'の「魂のかけら」を拾い「魂眠の壺」に入れて'.$na1.'を呪縛から解放する。';
+													$mess[] = 'マスター'.$na2[0].'は'.$na1.'をコレクションに加えた。';
+													$mess[] = '魂眠の壺の残り'.$t_count.'個の内１つを使った。';
+												}
 											}
 										}
 										//Master is SAYO or REN or URARA
@@ -1217,14 +1249,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+														$mess[]=$na2[0].' was a little happy (*艸 `) to see '.$na1.'`s smile.';
 													}else if($nu1==3){
 														$mess[]='!!!';
 														$mess[]='that! What happened?';
 														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+														$mess[]=$na2[0].' was a very happy( *´艸`) to see '.$na1.'`s smile.';
 													}else if($nu1>=6&&$nu1<=8){
 														$mess[]='!!!';
 														$mess[]='What the hell! What happened!';
@@ -1232,7 +1264,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='Suddenly a strong warrior picked up '.$na2[0].' with a big hand.';
 														$mess[]='Uncle who does not know the strong side even if '.$na2[0].' looks closely (ﾟ Д ﾟ)';
 														$mess[]='Uncle or Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+														$mess[]=$na2[0].' is confused(*_*)';
 													}else if($nu1==9){
 														$mess[]='!!!';
 														$mess[]='What! Ah!';
@@ -1240,7 +1272,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='A young warrior with a fearless look kneels in front of '.$na2[0].'.';
 														$mess[]='An older brother who does not know even if '.$na2[0].' looks closely( ﾟДﾟ)';
 														$mess[]='Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+														$mess[]=$na2[0].' is confused(*_*)';
 													}
 												}else{
 													if($nu1>3&&$nu1<6||$nu1==10){
@@ -1249,14 +1281,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
 														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+														$mess[]='久しぶりに見た'.$na1.'の姿に'.$na2[0].'はちょっと嬉かった( *´艸｀)';
 													}else if($nu1==3){
 														$mess[]='！！！';
 														$mess[]='あれ！どうしちゃったんだろ？';
 														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
 														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
 														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+														$mess[]='久しぶりに見た'.$na1.'の姿に'.$na2[0].'はかなり嬉かった( *´艸｀)';
 													}else if($nu1>=6&&$nu1<=8){
 														$mess[]='！！！';
 														$mess[]='何事じゃぁ！どうした！';
@@ -1264,7 +1296,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
 														$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
 														$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+														$mess[]=$na1.'の行動に'.$na2[0].'は困惑している(*_*)';
+														
 													}else if($nu1==9){
 														$mess[]='！！！';
 														$mess[]='何事！あっ！';
@@ -1272,7 +1305,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
 														$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
 														$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+														$mess[]=$na1.'の神妙な対応に'.$na2[0].'は困惑している(*_*)';
 													}
 												}
 											break;
@@ -1284,14 +1317,15 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+														$mess[]=$na2[0].' was a little happy (*艸 `) to see '.$na1.'`s smile.';
+														
 													}else if($nu1==3){
 														$mess[]='!!!';
 														$mess[]='that! What happened?';
 														$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+														$mess[]=$na2[0].' was a very happy( *´艸`) to see '.$na1.'`s smile.';
 													}
 												}else{
 													if($nu1>3&&$nu1<6||$nu1==10){
@@ -1300,14 +1334,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
 														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 														$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+														$mess[]=$na1.'の笑顔が'.$na2[0].'はちょっと嬉かった( *´艸｀)';
 													}else if($nu1==3){
 														$mess[]='！！！';
 														$mess[]='あれ！どうしちゃったんだろ？';
 														$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
 														$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
 														$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+														$mess[]=$na1.'の優しい目に見つめられて'.$na2[0].'はかなり嬉かった( *´艸｀)';
 													}
 												}
 											break;
@@ -1319,7 +1353,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='!!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 														$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 														$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-														$mess[]=$na1.' has joined the tearm! '.$na2[0].' was not happy...';
+														$mess[]=$na2[0].' was not happy...';
 													}
 												}else{
 													if($nu1==11){
@@ -1328,12 +1362,12 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 														$mess[]='!!'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
 														$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 														$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
-														$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+														$mess[]=$na1.'のマシンガントークに'.$na2[0].'はちょっと複雑だった...';
 													}
 												}
 										}
-										$otosimono=rand(0,2);
-										//1/3の確率で落とすので拾う
+										$otosimono=rand(0,$ic);
+										//1/$icの確率で落とすので拾う
 										if($otosimono==0){
 											$mono=rand(0,1);
 											if($mono==1){
@@ -1341,18 +1375,21 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 											switch($mono){
 												case 0:
-													$emono=rand(0,15);
+													$emono=rand(0,16);
 													if($emono==15){
-														$emono=rand(0,15);
+														$emono=rand(0,16);
 														if($emono==15){
-															$emono=rand(0,15);
+															$emono=rand(0,16);
 															if($emono==15){
-																$emono=rand(0,15);
+																$emono=rand(0,16);
 																if($emono==15){//坂巻のネジは無しにしとく
 																	$emono=0;//1/759375
 																}
 															}
 														}
+													}
+													if($t_count<10){
+														$emono=16;
 													}
 													if($local){
 														$gets='Item:';
@@ -1373,6 +1410,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															case 13:	$gets=$gets.'TantrumBall';	break;
 															case 14:	$gets=$gets.'GhostSmoke';	break;
 															case 15:	$gets=$gets.'Sakamaki';	break;
+															case 16:$gets=$gets.'SoulSleepJar';break;
 														}
 													}else{
 														$gets='アイテム：';
@@ -1393,6 +1431,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															case 13:	$gets=$gets.'かんしゃく玉';	break;
 															case 14:	$gets=$gets.'おばけけむり';	break;
 															case 15:	$gets=$gets.'坂巻のネジ';	break;
+															case 16:$gets=$gets.'魂眠の壺';break;
 														}
 													}
 												break;
@@ -1601,9 +1640,9 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 										}
 										$battle_loop=$i;
 										if($otosimono==0){
-											update_sql(0,$nu1,$mono,$emono,0);
+											update_sql(0,$nu1,$mono,$emono,0,$t_count);
 										}else{
-											update_sql(0,$nu1,100,100,0);
+											update_sql(0,$nu1,100,100,0,$t_count);
 										}
 										continue 2;//ここから2つ前のループを抜ける
 									}
@@ -1799,12 +1838,15 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 									//マスターの魅力が9以下でマスターではない場合でマスターがサヨかレン以外で仲間がサヨレンの知り合いではない場合
 									if($sc2[0]<10&&$nu2[$c]!=$nu2[0]&&$nu2[$c]>12&&$nu2[$c]<36){
 										if($local){
-											$mess[]= "[".$na2[$c]."] was frightend & hid behind [".$na2[0]."].......";
-											$mess[]= "[".$na2[$c]."] does not become a force!";
+											$mess[]= "[".$na2[$c]."] does not come out of the soul sleep jar.......";
+											$mess[]= "[".$na2[$c]."] seems to have lost his fighting spirit!";
 										}else{
-											$mess[]= "「".$na2[$c]."」は"."「".$na2[0]."の後ろに隠れてしまった.......";
-											$mess[]= "「".$na2[$c]."」は戦力にならない！";
+											$mess[]= "「".$na2[$c]."」は魂眠の壺から出てこない.......";
+											$mess[]= "「".$na2[$c]."」は戦意を失っているようだ！";
 										}
+										$hp2[$c]=0;
+										$nf=1;
+										$p++;
 										//msg_firstsecondを空にしておく
 										$msg_firstsecond="";
 									}else{
@@ -1981,12 +2023,35 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 													$mess[] = $na1." was defeated by [".$na2[$c]."].Deported to God.";
 												}else{
 													$mess[] = "Ghost was defeated by [".$na2[$c]."] and purified. Ghost that returned to me was [".$na1."].";
+													if(!$t_count){
+														$mess[] = 'have to give up picking up "'.$na1.' Soul Fragments" because there are not enough "Soul Sleeping Pots".';
+													}else if($t_count==1){
+														$mess[] = $na2[0].'picks up the falling '.$na1.'"Soul Fragment" and puts it in the "Soul Sleeping jar" to release '.$na1.' from the spell.';
+														$mess[] = 'Master '.$na2[0].' has added '.$na1.' to its collection.';
+														$mess[] = 'used all the "soul sleep jars".';
+													}else{
+														$mess[] = $na2[0].'picks up the falling '.$na1.'"Soul Fragment" and puts it in the "Soul Sleeping jar" to release '.$na1.' from the spell.';
+														$mess[] = 'Master '.$na2[0].' has added '.$na1.' to its collection.';
+														$mess[] = 'used one of the remaining　'.$t_count.' "Soul Sleeping jar".';
+													}
+													
 												}
 											}else{
 												if($place==3){
 													$mess[] = $na1."は「".$na2[$c]."」に敗北し、眩い光を伴って浄土へ送還された。";
 												}else{
 													$mess[] = "おばけは「".$na2[$c]."」に敗北して浄化された。我に返ったおばけは「".$na1."」だった。";
+													if(!$t_count){
+														$mess[] = '「魂眠の壺」の数が足らないので'.$na1.'の「魂のかけら」を拾うのをあきらめざるをえない。';
+													}else if($t_count==1){
+														$mess[] = $na2[0].'は落ちている'.$na1.'の「魂のかけら」を拾い「魂眠の壺」に入れて'.$na1.'を呪縛から解放する。';
+														$mess[] = 'マスター'.$na2[0].'は'.$na1.'をコレクションに加えた。';
+														$mess[] = '魂眠の壺を全て使ってしまった。';
+													}else{
+														$mess[] = $na2[0].'は落ちている'.$na1.'の「魂のかけら」を拾い「魂眠の壺」に入れて'.$na1.'を呪縛から解放する。';
+														$mess[] = 'マスター'.$na2[0].'は'.$na1.'をコレクションに加えた。';
+														$mess[] = '魂眠の壺の残り'.$t_count.'個の内1つを使った。';
+													}
 												}
 											}
 											//Master is SAYO or REN or URARA
@@ -1999,14 +2064,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+															$mess[]=$na2[0].' was a little happy (*艸 `) to see '.$na1.'`s smile.';
 														}else if($nu1==3){
 															$mess[]='!!!';
 															$mess[]='that! What happened?';
 															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+															$mess[]=$na2[0].' was a very happy( *´艸`) to see '.$na1.'`s smile.';
 														}else if($nu1>=6&&$nu1<=8){
 															$mess[]='!!!';
 															$mess[]='What the hell! What happened!';
@@ -2014,7 +2079,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='Suddenly a strong warrior picked up '.$na2[0].' with a big hand.';
 															$mess[]='Uncle who does not know the strong side even if '.$na2[0].' looks closely (ﾟ Д ﾟ)';
 															$mess[]='Uncle or Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+															$mess[]=$na2[0].' is confused(*_*)';
 														}else if($nu1==9){
 															$mess[]='!!!';
 															$mess[]='What! Ah!';
@@ -2022,7 +2087,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='A young warrior with a fearless look kneels in front of '.$na2[0].'.';
 															$mess[]='An older brother who does not know even if '.$na2[0].' looks closely( ﾟДﾟ)';
 															$mess[]='Mister! I am not Chiyo! I am '.$na2[0].'. Are you mistaken for someone?';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' is confused(*_*)';
+															$mess[]=$na2[0].' is confused(*_*)';
 														}
 													}else{
 														if($nu1>3&&$nu1<6||$nu1==10){
@@ -2031,14 +2096,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
 															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 															$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+															$mess[]='久しぶりに見た'.$na1.'の姿に'.$na2[0].'はちょっと嬉かった( *´艸｀)';
 														}else if($nu1==3){
 															$mess[]='！！！';
 															$mess[]='あれ！どうしちゃったんだろ？';
 															$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
 															$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
 															$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+															$mess[]='久しぶりに見た'.$na1.'の姿に'.$na2[0].'はかなり嬉かった( *´艸｀)';
 														}else if($nu1>=6&&$nu1<=8){
 															$mess[]='！！！';
 															$mess[]='何事じゃぁ！どうした！';
@@ -2046,7 +2111,8 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='突然強面の武者が'.$na2[0].'を大きな手で抱き上げた。';
 															$mess[]=$na2[0].'がよく見ても強面の知らないおじさん( ﾟДﾟ)';
 															$mess[]='おじさん！私は千代じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+															$mess[]=$na1.'の行動に'.$na2[0].'は困惑している(*_*)';
+															
 														}else if($nu1==9){
 															$mess[]='！！！';
 															$mess[]='何事！あっ！';
@@ -2054,7 +2120,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='精悍な顔つきの若武者が'.$na2[0].'の前に膝まづく。';
 															$mess[]=$na2[0].'がよく見ても知らないお兄さん( ﾟДﾟ)';
 															$mess[]='私は千代姫じゃないよ！'.$na2[0].'だよ！誰かと間違えてない？';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'は困惑している(*_*)';
+															$mess[]=$na1.'の神妙な対応に'.$na2[0].'は困惑している(*_*)';
 														}
 													}
 												break;
@@ -2066,14 +2132,15 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.', At the same school!';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a little happy (*艸 `)';
+															$mess[]=$na2[0].' was a little happy (*艸 `) to see '.$na1.'`s smile.';
+															
 														}else if($nu1==3){
 															$mess[]='!!!';
 															$mess[]='that! What happened?';
 															$mess[]='e!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was a very happy( *´艸`)';
+															$mess[]=$na2[0].' was a very happy( *´艸`) to see '.$na1.'`s smile.';
 														}
 													}else{
 														if($nu1>3&&$nu1<6||$nu1==10){
@@ -2082,14 +2149,14 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='え！'.$na2[0].'さん？あ！'.$na2[0].'さんだ。私だよ「'.$na1.'」！';
 															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 															$mess[]=$na2[0].'がよく見ると大分成長しているが同じクラスの'.$na1.'の顔だった！';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと嬉かった( *´艸｀)';
+															$mess[]=$na1.'の笑顔が'.$na2[0].'はちょっと嬉かった( *´艸｀)';
 														}else if($nu1==3){
 															$mess[]='！！！';
 															$mess[]='あれ！どうしちゃったんだろ？';
 															$mess[]='え！'.$na2[0].'さん？私「'.$na1.'」だよ！';
 															$mess[]='( ;∀;)久しぶりだねー！あの時のままね！';
 															$mess[]=$na2[0].'がよく見ると'.$na1.'の顔だった！';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はかなり嬉かった( *´艸｀)';
+															$mess[]=$na1.'の優しい目に見つめられて'.$na2[0].'はかなり嬉かった( *´艸｀)';
 														}
 													}
 												break;
@@ -2101,7 +2168,7 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='!!['.$na2[0].'] Ah! It is ['.$na2[0].']. It is me ['.$na1.']!';
 															$mess[]='(; ∀;) It is been a long time! It is still at that time!';
 															$mess[]='Looking closely at '.$na2[0].', It was the face of '.$na1.'!';
-															$mess[]=$na1.' has joined the tearm! '.$na2[0].' was not happy...';
+															$mess[]=$na2[0].' was not happy...';
 														}
 													}else{
 														if($nu1==11){
@@ -2110,24 +2177,18 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 															$mess[]='!!'.$na2[0].'さん？あ！'.$na2[0].'さんだ。ぼくだよ「'.$na1.'」！';
 															$mess[]='( ;∀;)久しぶりだねー！あの時のまんまだよ！';
 															$mess[]=$na2[0].'がよく見ると同じクラスの'.$na1.'の顔だった！';
-															$mess[]=$na1.'が仲間に加わった！'.$na2[0].'はちょっと複雑だった...';
+															$mess[]=$na1.'のマシンガントークに'.$na2[0].'はちょっと複雑だった...';
 														}
 													}
 											}
 											$battle_loop=$i;
-											update_sql(0,$nu1,100,100,0);
+											update_sql(0,$nu1,100,100,0,$t_count);
 											continue 2;//ここから2つ目のループを抜ける
 										}
 										//msg_firstsecondを空にしておく
 										$msg_firstsecond="";
 									}
 								}
-							}
-						}else{
-							if($local){
-								$mess[] =  '['.$na2[$c].'] is already exhausted ...';
-							}else{
-								$mess[] =  'もう「'.$na2[$c].'」は力尽きている...';
 							}
 						}
 						$c++;
@@ -2140,16 +2201,16 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 						$mess[] = 'パーティは全滅してしまった.....';
 					}
 					$battle_loop=$i;
-					update_sql(0,$nu1,100,100,2);//$type=2を読んでmasterのPP値を減算
+					update_sql(0,$nu1,100,100,2,$t_count);//$type=2を読んでmasterのPP値を減算
 					continue;
 				}
 			}
 		}
 	}
 	$mess=array_filter($mess, 'myFilter');//配列の空を取り除く
-	update_sql($mess,$nu1,100,100,1);//メッセージを書き込む
+	update_sql($mess,$nu1,100,100,1,$t_count);//メッセージを書き込む
 }
-function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに書き込み
+function update_sql($messeges,$enemy_number,$mon,$emo,$type,$tc){//ここでsqlに書き込み
 	$items = [];
 	$ghost = [];
 	//global value
@@ -2166,670 +2227,1740 @@ function update_sql($messeges,$enemy_number,$mon,$emo,$type){//ここでsqlに�
 		if($enemy_number){
 			//Sql connect
 			$db = new PDO($host,$user,$pass);
-			//echo '	：tripに書き込みログインOK:　';
-			//view databases
-			$sql = 'SHOW DATABASES';
-			$results = $db->query($sql);
-			//array loop
-			while ($result = $results->fetch(PDO::FETCH_NUM)){
-				//Does the database exist(DBがあった場合)
-				if($result[0]==$db_name){
-					$sql = 'use '.$db_name;//DBを選択
-					if($db->query($sql)){
-						$player = "SELECT * FROM ".$tb_name;
-						$player=$db->query($player);
-						$ghosttb = "SELECT * FROM ".$tb_ghost;
-						$ghosttb=$db->query($ghosttb);
-						//if $mon && $emo is !100
+			$sql = 'use '.$db_name;//DBを選択
+			if($db->query($sql)){
+				//POSTされたアカウントとパスワードでテーブルをGET
+				$sql = "SELECT * FROM ".$tb_name." where acount=\"".$acount."\" and password=\"".$password."\"";
+				$sql=$db->query($sql);
+				$rows = $sql->fetchAll();//$enemyのテーブルをデータ化しておく
+				if(!empty($rows[0])){
+					$row=$rows[0];//$rows[0]がGETしたテーブルのROWになっている
+					$ghosttb = "SELECT * FROM ".$tb_ghost;
+					$ghosttb=$db->query($ghosttb);	
+					$ghosttb = $ghosttb->fetchAll();//$enemyのテーブルをデータ化しておく
+					//Getting Ghost Data
+					foreach($ghosttb as $party){
+						if($enemy_number==$party['id']){
+							//echo ' : $party["id"]='.$enemy_number.' : ';
+							$get_enemy[0]=$party['id'];
+							$get_enemy[1]=0;
+							$get_enemy[2]=$party['HP'];
+							$get_enemy[3]=$party['DP'];
+							$get_enemy[4]=$party['SP'];
+							$get_enemy[5]=$party['LP'];
+							$get_enemy[6]=$party['AP'];
+							$get_enemy[7]=$party['FP'];//好感度この値がHPとしてパーティ全員に振り分けられる
+							$get_enemy[8]=$party['TP'];//プレイヤーとの信頼度
+							$get_enemy[9]=$party['PP'];//マスターの時のマスターの信頼性
+							$get_enemy[10]=0;
+							$get_enemy[11]=0;
+							$get_enemy[12]=0;
+							$get_enemy[13]=0;
+							//CP
+							$Get_enemy_cp=$party['HP']+$party['DP']+$party['SP']+$party['LP']+$party['AP'];
+						}
+					}
+					if(!$type){
+						$master= unserialize($row['master']);
+						$party1= unserialize($row['party1']);
+						$p1_CP=$party1[2]+$party1[3]+$party1[4]+$party1[5]+$party1[6];
+						$party2= unserialize($row['party2']);
+						$p2_CP=$party2[2]+$party2[3]+$party2[4]+$party2[5]+$party2[6];
+						//print ' : $p2_CP : '.$p2_CP.' : ';
+						$party3= unserialize($row['party3']);
+						$p3_CP=$party3[2]+$party3[3]+$party3[4]+$party3[5]+$party3[6];
+						//print ' : $p3_CP : '.$p3_CP.' : ';
+						$party4= unserialize($row['party4']);
+						$p4_CP=$party4[2]+$party4[3]+$party4[4]+$party4[5]+$party4[6];
+						//print ' : $p4_CP : '.$p4_CP.' : ';
+						//weapontb
+						$weapontb= "SELECT * FROM weapon_tb";
+						$weapontb=$db->query($weapontb);
+						$rwep = $weapontb->fetchAll();//$weaponのテーブルをデータ化しておく
+						//grovetb
+						$grovetb= "SELECT * FROM glove_tb";
+						$grovetb=$db->query($grovetb);
+						$rgro = $grovetb->fetchAll();//$groveのテーブルをデータ化しておく
+						//armortb
+						$armortb= "SELECT * FROM armor_tb";
+						$armortb=$db->query($armortb);
+						$rarm = $armortb->fetchAll();//$armorのテーブルをデータ化しておく
+						//shoestb
+						$kututb= "SELECT * FROM kutu_tb";
+						$kututb=$db->query($kututb);
+						$rsho = $kututb->fetchAll();//$shoesのテーブルをデータ化しておく
+						if($tc){//魂眠の壺の残りがある場合
+							//print ' :: t count :'.$tc.' :: ';
+							//print ' : $Get_enemy_cp : '.$Get_enemy_cp.' : ';
+							$ghost = unserialize($row['ghost']);
+							$ghost[$enemy_number-1]++;
+
+							
+							if(!$party1[0]){//party1にだれもセットされていないかったら
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								$wep = unserialize($row['weapon']);
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){//weaponのリストの0ではないものを探す
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;//該当のカウントを一つデクリメント
+										//add
+										foreach($rwep as $weap){//weaponのテーブルから加算値を追加する
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap[0]==13||$get_enemy[0]==6&&$weap[0]==13||$get_enemy[0]==2&&$weap[0]==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								$gro = unserialize($row['grove']);
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								$armo = unserialize($row['armored']);
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								$sho = unserialize($row['shoes']);
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party1=:party1 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party1'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if(!$party2[0]){//party2にだれもセットされていないかったら
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								$wep = unserialize($row['weapon']);
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap[0]==13||$get_enemy[0]==6&&$weap[0]==13||$get_enemy[0]==2&&$weap[0]==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								$gro = unserialize($row['grove']);
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								$armo = unserialize($row['armored']);
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								$sho = unserialize($row['shoes']);
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party2=:party2 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party2'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if(!$party3[0]){//party3にだれもセットされていないかったら
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								$wep = unserialize($row['weapon']);
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap[0]==13||$get_enemy[0]==6&&$weap[0]==13||$get_enemy[0]==2&&$weap[0]==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								$gro = unserialize($row['grove']);
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								$armo = unserialize($row['armored']);
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								$sho = unserialize($row['shoes']);
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party3=:party3 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party3'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if(!$party4[0]){//party4にだれもセットされていないかったら
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								$wep = unserialize($row['weapon']);
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap[0]==13||$get_enemy[0]==6&&$weap[0]==13||$get_enemy[0]==2&&$weap[0]==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								$gro = unserialize($row['grove']);
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								$armo = unserialize($row['armored']);
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								$sho = unserialize($row['shoes']);
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party4=:party4 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party4'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if($master[0]<3&&$party1[0]>2&&$get_enemy[0]==3||$party1[0]>10&&$Get_enemy_cp>$p1_CP&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party1[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party1[0]>10){
+								//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+								for($ico=0;$ico<rand(5,10);$ico++){
+									$master[7]--;
+									if($master[7]<0){
+										$master[7]=0;
+										break;
+									}
+								}
+								if($party1[10]){//武器を持っていたらその武器を外してリストに戻す
+									$wep = unserialize($row['weapon']);
+									$wep[($party1[10]-1)]++;
+								}
+								if($party1[11]){//手袋を持っていたらその手袋を外してリストに戻す
+									$gro = unserialize($row['grove']);
+									$gro[($party1[11]-1)]++;
+								}
+								if($party1[12]){//防具を身に着けていたらそれを外しリストに戻す
+									$armo = unserialize($row['armored']);
+									$armo[($party1[12]-1)]++;
+								}
+								if($party1[13]){//靴を履いていたら脱いでその靴をリストに戻す
+									$sho = unserialize($row['shoes']);
+									$sho[($party1[13]-1)]++;
+								}
+								//party1を捕まえたenemyに入れ替える
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								if(!isset($wep)){
+									$wep = unserialize($row['weapon']);
+								}
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap['id']==13||$get_enemy[0]==6&&$weap['id']==13||$get_enemy[0]==2&&$weap['id']==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								if(!isset($gro)){
+									$gro = unserialize($row['grove']);
+								}
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								if(!isset($armo)){
+									$armo = unserialize($row['armored']);
+								}
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								if(!isset($sho)){
+									$sho = unserialize($row['shoes']);
+								}
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party1=:party1 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party1'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if($master[0]<3&&$party2[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p2_CP&&$party2[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party2[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party2[0]>10){
+								//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+								for($ico=0;$ico<rand(5,10);$ico++){
+									$master[7]--;
+									if($master[7]<0){
+										$master[7]=0;
+									break;
+									}
+								}
+								if($party2[10]){
+									$wep = unserialize($row['weapon']);
+									$wep[($party2[10]-1)]++;
+								}
+								if($party2[11]){
+									$gro = unserialize($row['grove']);
+									$gro[($party2[11]-1)]++;
+								}
+								if($party2[12]){
+									$armo = unserialize($row['armored']);
+									$armo[($party2[12]-1)]++;
+								}
+								if($party2[13]){
+									$sho = unserialize($row['shoes']);
+									$sho[($party2[13]-1)]++;
+								}
+								//Change party2
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								if(!isset($wep)){
+									$wep = unserialize($row['weapon']);
+								}
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap['id']==13||$get_enemy[0]==6&&$weap['id']==13||$get_enemy[0]==2&&$weap['id']==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								if(!isset($gro)){
+									$gro = unserialize($row['grove']);
+								}
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								if(!isset($armo)){
+									$armo = unserialize($row['armored']);
+								}
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								if(!isset($sho)){
+									$sho = unserialize($row['shoes']);
+								}
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party2=:party2 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party2'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if($master[0]<3&&$party3[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p3_CP&&$party3[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party3[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party3[0]>10){
+								//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+								for($ico=0;$ico<rand(5,10);$ico++){
+									$master[7]--;
+									if($master[7]<0){
+										$master[7]=0;
+									break;
+									}
+								}
+								if($party3[10]){
+									$wep = unserialize($row['weapon']);
+									$wep[($party3[10]-1)]++;
+								}
+								if($party3[11]){
+									$gro = unserialize($row['grove']);
+									$gro[($party3[11]-1)]++;
+								}
+								if($party3[12]){
+									$armo = unserialize($row['armored']);
+									$armo[($party3[12]-1)]++;
+								}
+								if($party3[13]){
+									$sho = unserialize($row['shoes']);
+									$sho[($party3[13]-1)]++;
+								}
+								//Change party3
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								if(!isset($wep)){
+									$wep = unserialize($row['weapon']);
+								}
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap['id']==13||$get_enemy[0]==6&&$weap['id']==13||$get_enemy[0]==2&&$weap['id']==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								if(!isset($gro)){
+									$gro = unserialize($row['grove']);
+								}
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								if(!isset($armo)){
+									$armo = unserialize($row['armored']);
+								}
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=4;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								if(!isset($sho)){
+									$sho = unserialize($row['shoes']);
+								}
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party3=:party3 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party3'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else if($master[0]<3&&$party4[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p4_CP&&$party4[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party4[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party4[0]>10){
+								//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
+								for($ico=0;$ico<rand(5,10);$ico++){
+									$master[7]--;
+									if($master[7]<0){
+										$master[7]=0;
+										break;
+									}
+								}
+								if($party4[10]){
+									$wep = unserialize($row['weapon']);
+									$wep[($party4[10]-1)]++;
+								}
+								if($party4[11]){
+									$gro = unserialize($row['grove']);
+									$gro[($party4[11]-1)]++;
+								}
+								if($party4[12]){
+									$armo = unserialize($row['armored']);
+									$armo[($party4[12]-1)]++;
+								}
+								if($party4[13]){
+									$sho = unserialize($row['shoes']);
+									$sho[($party4[13]-1)]++;
+								}
+								//Change party4
+								//まず武器のリストを見て逆順で0でないものがあればセットする
+								if(!isset($wep)){
+									$wep = unserialize($row['weapon']);
+								}
+								for($i=0;$i<count($wep);$i++){
+									if($wep[$i]){
+										$get_enemy[10]=$i+1;
+										$wep[$i]--;
+										//add
+										foreach($rwep as $weap){
+											if($weap['id']==($i+1)){
+												if($get_enemy[0]==3&&$weap['id']==13||$get_enemy[0]==6&&$weap['id']==13||$get_enemy[0]==2&&$weap['id']==18){
+													$plus=4;
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$weap[2];
+												$get_enemy[4] =$get_enemy[4]+$weap[3];
+												$get_enemy[6] =$get_enemy[6]+$weap[4]*$plus;
+												$get_enemy[7] =$get_enemy[7]+$weap[5];
+												$get_enemy[8] =$get_enemy[8]+$weap[6];
+												$get_enemy[9] =$get_enemy[9]+$weap[7];
+											}
+										}
+										break;
+									}
+								}
+								//続いて手袋
+								if(!isset($gro)){
+									$gro = unserialize($row['grove']);
+								}
+								for($i=0;$i<count($gro);$i++){
+									if($gro[$i]){
+										$get_enemy[11]=$i+1;
+										$gro[$i]--;
+										//add
+										foreach($rgro as $gr){
+											if($gr['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$gr[2];
+												$get_enemy[4] =$get_enemy[4]+$gr[3];
+											}
+										}
+										break;
+									}
+								}
+								//続いて防具
+								if(!isset($armo)){
+									$armo = unserialize($row['armored']);
+								}
+								for($i=0;$i<count($armo);$i++){
+									if($armo[$i]){
+										$get_enemy[12]=$i+1;
+										$armo[$i]--;
+										//add
+										foreach($rarm as $armod){
+											if($armod['id']==($i+1)){
+												if($get_enemy[0]==1&&$armod[0]==4){
+													$plus=2;//サヨが紺糸なら防御が倍
+												}else{
+													$plus=1;
+												}
+												$get_enemy[3] =$get_enemy[3]+$armod[2]*$plus;
+												$get_enemy[4] =$get_enemy[4]+$armod[3];
+												$get_enemy[5] =$get_enemy[5]+$armod[4];
+												$get_enemy[8] =$get_enemy[8]+$armod[5];
+												$get_enemy[9] =$get_enemy[9]+$armod[6];
+											}
+										}
+										break;
+									}
+								}
+								//そして靴
+								if(!isset($sho)){
+									$sho = unserialize($row['shoes']);
+								}
+								for($i=0;$i<count($sho);$i++){
+									if($sho[$i]){
+										$get_enemy[13]=$i+1;
+										$sho[$i]--;
+										//add
+										foreach($rsho as $sh){
+											if($sh['id']==($i+1)){
+												$get_enemy[3] =$get_enemy[3]+$sh[2];
+												$get_enemy[4] =$get_enemy[4]+$sh[3];
+											}
+										}
+										break;
+									}
+								}
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:weapon,grove=:grove,armored=:armored,shoes=:shoes,party4=:party4 where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':weapon'=>serialize($wep),':grove'=>serialize($gro),':armored'=>serialize($armo),':shoes'=>serialize($sho),':party4'=>serialize($get_enemy),':id'=>$row['id']);
+								$m->execute($w);
+							}else{
+								$m  = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
+								$m = $db->prepare($m);
+								$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
+								$m->execute($w);
+							}
+						}
+						//落し物を拾っている場合
 						if($mon!=100 && $emo!=100){
+							//print ' : hirotteru : ';
 							switch($mon){
-							case 1://get weapon
-								$weapontb= "SELECT * FROM weapon_tb";
-								$weapontb=$db->query($weapontb);
-								foreach($weapontb as $weap){
-									if($weap['id']==($emo+1)){
-										$weapon = $weap;
-									}
-								}
-							break;
-							case 2://get glove
-								$glovetb= "SELECT * FROM glove_tb";
-								$glovetb=$db->query($glovetb);
-								foreach($glovetb as $glove){
-									if($glove['id']==($emo+1)){
-										$grove = $glove;
-									}
-								}
-							break;
-							case 3://get armor
-								$armortb= "SELECT * FROM armor_tb";
-								$armortb=$db->query($armortb);
-								foreach($armortb as $arm){
-									if($arm['id']==($emo+1)){
-										$armor = $arm;
-									}
-								}
-							break;
-							case 4://get shoes
-								$shoestb= "SELECT * FROM kutu_tb";
-								$shoestb=$db->query($shoestb);
-								foreach($shoestb as $kutu){
-									if($kutu['id']==($emo+1)){
-										$shoes = $kutu;
-									}
-								}
-							break;
-							}
-						}
-						//Getting Ghost Data
-						foreach($ghosttb as $party){
-							if($enemy_number==$party['id']){
-								//echo ' : $party["id"]='.$enemy_number.' : ';
-								$get_enemy[0]=$party['id'];
-								$get_enemy[1]=0;
-								$get_enemy[2]=$party['HP'];
-								$get_enemy[3]=$party['DP'];
-								$get_enemy[4]=$party['SP'];
-								$get_enemy[5]=$party['LP'];
-								$get_enemy[6]=$party['AP'];
-								$get_enemy[7]=$party['FP'];//好感度この値がHPとしてパーティ全員に振り分けられる
-								$get_enemy[8]=$party['TP'];//プレイヤーとの信頼度
-								$get_enemy[9]=$party['PP'];//マスターの時のマスターの信頼性
-								$get_enemy[10]=0;
-								$get_enemy[11]=0;
-								$get_enemy[12]=0;
-								$get_enemy[13]=0;
-								//CP
-								$Get_enemy_cp=$party['HP']+$party['DP']+$party['SP']+$party['LP']+$party['AP'];
-							}
-						}
-						//echo '  :acount:  '.$acount.' :PASS: '.$password;
-						foreach($player as $row){
-							if($row['acount']==$acount && $row['password']==$password){
-								if(!$type){
-									//print ' : $Get_enemy_cp : '.$Get_enemy_cp.' : ';
-									$ghost = unserialize($row['ghost']);
-									for($i=0;$i<count($ghost);$i++){
-										if($i==($enemy_number-1)){
-											$ghost[$i]++;
+								case 0://item
+									$items = unserialize($row['item']);
+									$items[$emo]++;
+									$m  = 'UPDATE '.$tb_name.' set item=:item where id=:id';
+									$m = $db->prepare($m);
+									$w = array(':item'=>serialize($items),':id'=>$row['id']);
+									$m->execute($w);
+								break;
+								case 1://weapon
+									foreach($rwep as $weap){
+										if($weap['id']==($emo+1)){
+											$weapon = $weap;
 										}
 									}
-									$master= unserialize($row['master']);
-									$party1= unserialize($row['party1']);
-									$p1_CP=$party1[2]+$party1[3]+$party1[4]+$party1[5]+$party1[6];
-									$party2= unserialize($row['party2']);
-									$p2_CP=$party2[2]+$party2[3]+$party2[4]+$party2[5]+$party2[6];
-									//print ' : $p2_CP : '.$p2_CP.' : ';
-									$party3= unserialize($row['party3']);
-									$p3_CP=$party3[2]+$party3[3]+$party3[4]+$party3[5]+$party3[6];
-									//print ' : $p3_CP : '.$p3_CP.' : ';
-									$party4= unserialize($row['party4']);
-									$p4_CP=$party4[2]+$party4[3]+$party4[4]+$party4[5]+$party4[6];
-									//print ' : $p4_CP : '.$p4_CP.' : ';
-									if(!$party1[0]){//party1にだれもセットされていないかったら
+									$nowm_p=0;$now1_p=0;$now2_p=0;$now3_p=0;$now4_p=0;
+									if($master[10]){
+										foreach($rwep as $weap1){//今持っている武器
+											if($weap1['id']==$master[10]){
+												$nowm_w = $weap1;
+												//print ' : $weap1[id] : '.$weap1['id'].' : ';
+											}
+										}
+										$nowm_p=$nowm_w[2]+$nowm_w[3]+$nowm_w[4]+$nowm_w[5]+$nowm_w[6]+$nowm_w[7];
+										//print ' : master[10] :'.$master[10].' : nowm_p : '.$nowm_p.' : ';
+										//var_dump($result);
+									}
+									if($party1[10]){
+										foreach($rwep as $weap1){//今持っている武器
+											if($weap1['id']==$party1[10]){
+												$now1_w = $weap1;
+											}
+										}
+										$now1_p=$now1_w[2]+$now1_w[3]+$now1_w[4]+$now1_w[5]+$now1_w[6]+$now1_w[7];
+									}
+									if($party2[10]){
+										foreach($rwep as $weap1){//今持っている武器
+											if($weap1['id']==$party2[10]){
+												$now2_w = $weap1;
+											}
+										}
+										$now2_p=$now2_w[2]+$now2_w[3]+$now2_w[4]+$now2_w[5]+$now2_w[6]+$now2_w[7];
+									}
+									if($party3[10]){
+										foreach($rwep as $weap1){//今持っている武器
+											if($weap1['id']==$party3[10]){
+												$now3_w = $weap1;
+											}
+										}
+										$now3_p=$now3_w[2]+$now3_w[3]+$now3_w[4]+$now3_w[5]+$now3_w[6]+$now3_w[7];
+									}
+									if($party4[10]){
+										foreach($rwep as $weap1){//今持っている武器
+											if($weap1['id']==$party4[10]){
+												$now4_w = $weap1;
+											}
+										}
+										$now4_p=$now4_w[2]+$now4_w[3]+$now4_w[4]+$now4_w[5]+$now4_w[6]+$now4_w[7];
+									}
+									$get_w=$weapon[2]+$weapon[3]+$weapon[4]+$weapon[5]+$weapon[6]+$weapon[7];
+									//print ' : get_w : '.$get_w.' : ';
+									if(!$master[10]){//まず、優先的にweaponを持ってない場合は供給します
+										if($master[0]==3&&$weapon[0]==13||$master[0]==6&&$weapon[0]==13||$master[0]==2&&$weapon[0]==18){
+											$plus=4;//うららか監物が同田貫なら攻撃量が倍
+										}else{
+											$plus=1;
+										}
+										$master[10]=$weapon[0];
+										$master[3] =$master[3]+$weapon[2];
+										$master[4] =$master[4]+$weapon[3];
+										$master[6] =$master[6]+$weapon[4]*$plus;
+										$master[7] =$master[7]+$weapon[5];
+										$master[8] =$master[8]+$weapon[6];
+										$master[9] =$master[9]+$weapon[7];
+										$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party1[10]){
+										if($party1[0]==3&&$weapon[0]==13||$party1[0]==6&&$weapon[0]==13||$party1[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party1[10]=$weapon[0];
+										$party1[3] =$party1[3]+$weapon[2];
+										$party1[4] =$party1[4]+$weapon[3];
+										$party1[6] =$party1[6]+$weapon[4]*$plus;
+										$party1[7] =$party1[7]+$weapon[5];
+										$party1[8] =$party1[8]+$weapon[6];
+										$party1[9] =$party1[9]+$weapon[7];
 										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':party1'=>serialize($get_enemy),':id'=>$row['id']);
+										$w = array(':party1'=>serialize($party1),':id'=>$row['id']);
 										$m->execute($w);
-									}else if(!$party2[0]){//party2にだれもセットされていないかったら
+									}else if(!$party2[10]){
+										if($party2[0]==3&&$weapon[0]==13||$party2[0]==6&&$weapon[0]==13||$party2[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party2[10]=$weapon[0];
+										$party2[3] =$party2[3]+$weapon[2];
+										$party2[4] =$party2[4]+$weapon[3];
+										$party2[6] =$party2[6]+$weapon[4]*$plus;
+										$party2[7] =$party2[7]+$weapon[5];
+										$party2[8] =$party2[8]+$weapon[6];
+										$party2[9] =$party2[9]+$weapon[7];
 										$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
+										$w = array(':party2'=>serialize($party2),':id'=>$row['id']);
 										$m->execute($w);
-									}else if(!$party3[0]){//party3にだれもセットされていないかったら
+									}else if(!$party3[10]){
+										if($party3[0]==3&&$weapon[0]==13||$party3[0]==6&&$weapon[0]==13||$party3[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party3[10]=$weapon[0];
+										$party3[3] =$party3[3]+$weapon[2];
+										$party3[4] =$party3[4]+$weapon[3];
+										$party3[6] =$party3[6]+$weapon[4]*$plus;
+										$party3[7] =$party3[7]+$weapon[5];
+										$party3[8] =$party3[8]+$weapon[6];
+										$party3[9] =$party3[9]+$weapon[7];
 										$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
+										$w = array(':party3'=>serialize($party3),':id'=>$row['id']);
 										$m->execute($w);
-									}else if(!$party4[0]){//party4にだれもセットされていないかったら
+									}else if(!$party4[10]){
+										if($party4[0]==3&&$weapon[0]==13||$party4[0]==6&&$weapon[0]==13||$party4[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party4[10]=$weapon[0];
+										$party4[3] =$party4[3]+$weapon[2];
+										$party4[4] =$party4[4]+$weapon[3];
+										$party4[6] =$party4[6]+$weapon[4]*$plus;
+										$party4[7] =$party4[7]+$weapon[5];
+										$party4[8] =$party4[8]+$weapon[6];
+										$party4[9] =$party4[9]+$weapon[7];
 										$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
+										$w = array(':party4'=>serialize($party4),':id'=>$row['id']);
 										$m->execute($w);
-									}else if($party1[0]>2&&$get_enemy[0]==3||$party1[0]>10&&$Get_enemy_cp>$p1_CP&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party1[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party1[0]>10){
-										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
-										for($ico=0;$ico<rand(5,10);$ico++){
-											$master[7]--;
-											if($master[7]<0){
-												$master[7]=0;
-											break;
-											}
-										}
-										if($party1[10]){
-											$items = unserialize($row['weapon']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party1[10]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party1=:party1,weapon=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party1'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party1[11]){
-											$items = unserialize($row['grove']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party1[11]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party1=:party1,grove=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party1'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party1[12]){
-											$items = unserialize($row['armored']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party1[12]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party1=:party1,armored=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party1'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party1[13]){
-											$items = unserialize($row['shoes']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party1[13]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party1=:party1,shoes=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party1'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
+									}else if($master[10]&&$get_w>$nowm_p){//マスターの武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$master[10];//weapon id backup
+										if($master[0]==3&&$weapon[0]==13||$master[0]==6&&$weapon[0]==13||$master[0]==2&&$weapon[0]==18){
+											$plus=4;
 										}else{
-											$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party1'=>serialize($get_enemy),':id'=>$row['id']);
-											$m->execute($w);
+											$plus=1;
 										}
-									}else if($party2[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p2_CP&&$party2[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party2[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party2[0]>10){
-										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
-										for($ico=0;$ico<rand(5,10);$ico++){
-											$master[7]--;
-											if($master[7]<0){
-												$master[7]=0;
-											break;
-											}
-										}
-										if($party2[10]){
-											$items = unserialize($row['weapon']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party2[10]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party2=:party2,weapon=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party2'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party2[11]){
-											$items = unserialize($row['grove']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party2[11]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party2=:party2,grove=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party2'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party2[12]){
-											$items = unserialize($row['armored']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party2[12]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party2=:party2,armored=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party2'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party2[13]){
-											$items = unserialize($row['shoes']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party2[13]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party2=:party2,shoes=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party2'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else{
-											$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party2'=>serialize($get_enemy),':id'=>$row['id']);
-											$m->execute($w);
-										}
-									}else if($party3[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p3_CP&&$party3[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party3[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party3[0]>10){
-										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
-										for($ico=0;$ico<rand(5,10);$ico++){
-											$master[7]--;
-											if($master[7]<0){
-												$master[7]=0;
-											break;
-											}
-										}
-										if($party3[10]){
-											$items = unserialize($row['weapon']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party3[10]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party3=:party3,weapon=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party3[11]){
-											$items = unserialize($row['grove']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party3[11]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party3=:party3,grove=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party3[12]){
-											$items = unserialize($row['armored']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party3[12]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party3=:party3,armored=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party3[13]){
-											$items = unserialize($row['shoes']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party3[13]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party3=:party3,shoes=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else{
-											$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party3'=>serialize($get_enemy),':id'=>$row['id']);
-											$m->execute($w);
-										}
-									}else if($party4[0]>2&&$get_enemy[0]==3||$Get_enemy_cp>$p4_CP&&$party4[0]>10&&!$TrustPoint||$master[0]<3&&!$TrustPoint&&$get_enemy[0]>2&&$get_enemy[0]<6&&$party4[0]>10||$master[0]<3&&!$TrustPoint&&$get_enemy[0]==10&&$party4[0]>10){
-										//TP値がFALSEでCP値が捕まえたエネミーの方が大きかったら差し替えorTP値がFALSEでMASTERがサヨかレンなら友達優先
-										for($ico=0;$ico<rand(5,10);$ico++){
-											$master[7]--;
-											if($master[7]<0){
-												$master[7]=0;
-											break;
-											}
-										}
-										if($party4[10]){
-											$items = unserialize($row['weapon']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party4[10]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4,weapon=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party4[11]){
-											$items = unserialize($row['grove']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party4[11]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4,grove=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party4[12]){
-											$items = unserialize($row['armored']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party4[12]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4,armored=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else if($party4[13]){
-											$items = unserialize($row['shoes']);
-											for($i=0;$i<count($items);$i++){
-												if($i==($party4[13]-1)){
-													$items[$i]++;
-												}
-											}
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4,shoes=:item where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':item'=>serialize($items),':id'=>$row['id']);
-											$m->execute($w);
-										}else{
-											$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
-											$m = $db->prepare($m);
-											$w = array(':party4'=>serialize($get_enemy),':id'=>$row['id']);
-											$m->execute($w);
-										}
-									}
-									//落し物を拾っている場合
-									if($mon!=100 && $emo!=100){
-										//print ' : hirotteru : ';
-										switch($mon){
-											case 0:
-												$items = unserialize($row['item']);
-												for($i=0;$i<count($items);$i++){
-													if($i==$emo){
-														$items[$i]++;
-													}
-												}
-												$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,item=:item where id=:id';
-												$m = $db->prepare($m);
-												$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-												$m->execute($w);
-											break;
-											case 1://weapon
-												if(!$master[10]){
-													$master[10]=$weapon[0];
-													$master[3] =$master[3]+$weapon[2];
-													$master[4] =$master[4]+$weapon[3];
-													$master[6] =$master[6]+$weapon[4];
-													$master[7] =$master[7]+$weapon[5];
-													$master[8] =$master[8]+$weapon[6];
-													$master[9] =$master[9]+$weapon[7];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party1[10]){
-													$party1[10]=$weapon[0];
-													$party1[3] =$party1[3]+$weapon[2];
-													$party1[4] =$party1[4]+$weapon[3];
-													$party1[6] =$party1[6]+$weapon[4];
-													$party1[7] =$party1[7]+$weapon[5];
-													$party1[8] =$party1[8]+$weapon[6];
-													$party1[9] =$party1[9]+$weapon[7];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party2[10]){
-													$party2[10]=$weapon[0];
-													$party2[3] =$party2[3]+$weapon[2];
-													$party2[4] =$party2[4]+$weapon[3];
-													$party2[6] =$party2[6]+$weapon[4];
-													$party2[7] =$party2[7]+$weapon[5];
-													$party2[8] =$party2[8]+$weapon[6];
-													$party2[9] =$party2[9]+$weapon[7];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party3[10]){
-													$party3[10]=$weapon[0];
-													$party3[3] =$party3[3]+$weapon[2];
-													$party3[4] =$party3[4]+$weapon[3];
-													$party3[6] =$party3[6]+$weapon[4];
-													$party3[7] =$party3[7]+$weapon[5];
-													$party3[8] =$party3[8]+$weapon[6];
-													$party3[9] =$party3[9]+$weapon[7];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party4[10]){
-													$party4[10]=$weapon[0];
-													$party4[3] =$party4[3]+$weapon[2];
-													$party4[4] =$party4[4]+$weapon[3];
-													$party4[6] =$party4[6]+$weapon[4];
-													$party4[7] =$party4[7]+$weapon[5];
-													$party4[8] =$party4[8]+$weapon[6];
-													$party4[9] =$party4[9]+$weapon[7];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
-													$m->execute($w);
-												}else{
-													$items = unserialize($row['weapon']);
-													for($i=0;$i<count($items);$i++){
-														if($i==$emo){
-															$items[$i]++;
-														}
-													}
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,weapon=:item where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-													$m->execute($w);
-												}
-											break;
-											case 2://glove
-												if(!$master[11]){
-													$master[11]=$grove[0];
-													$master[3] =$master[3]+$grove[2];
-													$master[4] =$master[4]+$grove[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party1[11]){
-													$party1[11]=$grove[0];
-													$party1[3] =$party1[3]+$grove[2];
-													$party1[4] =$party1[4]+$grove[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party2[11]){
-													$party2[11]=$grove[0];
-													$party2[3] =$party2[3]+$grove[2];
-													$party2[4] =$party2[4]+$grove[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party3[11]){
-													$party3[11]=$grove[0];
-													$party3[3] =$party3[3]+$grove[2];
-													$party3[4] =$party3[4]+$grove[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party4[11]){
-													$party4[11]=$grove[0];
-													$party4[3] =$party4[3]+$grove[2];
-													$party4[4] =$party4[4]+$grove[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
-													$m->execute($w);
-												}else{
-													$items = unserialize($row['grove']);
-													for($i=0;$i<count($items);$i++){
-														if($i==$emo){
-															$items[$i]++;
-														}
-													}
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,grove=:item where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-													$m->execute($w);
-												}
-											break;
-											case 3:
-												if(!$master[12]){
-													$master[12]=$armor[0];
-													$master[3] =$master[3]+$armor[2];
-													$master[4] =$master[4]+$armor[3];
-													$master[5] =$master[5]+$armor[4];
-													$master[8] =$master[8]+$armor[5];
-													$master[9] =$master[9]+$armor[6];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party1[12]){
-													$party1[12]=$armor[0];
-													$party1[3] =$party1[3]+$armor[2];
-													$party1[4] =$party1[4]+$armor[3];
-													$party1[5] =$party1[5]+$armor[4];
-													$party1[8] =$party1[8]+$armor[5];
-													$party1[9] =$party1[9]+$armor[6];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party2[12]){
-													$party2[12]=$armor[0];
-													$party2[3] =$party2[3]+$armor[2];
-													$party2[4] =$party2[4]+$armor[3];
-													$party2[5] =$party2[5]+$armor[4];
-													$party2[8] =$party2[8]+$armor[5];
-													$party2[9] =$party2[9]+$armor[6];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party3[12]){
-													$party3[12]=$armor[0];
-													$party3[3] =$party3[3]+$armor[2];
-													$party3[4] =$party3[4]+$armor[3];
-													$party3[6] =$party3[5]+$armor[4];
-													$party3[8] =$party3[8]+$armor[5];
-													$party3[9] =$party3[9]+$armor[6];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party4[12]){
-													$party4[12]=$armor[0];
-													$party4[3] =$party4[3]+$armor[2];
-													$party4[4] =$party4[4]+$armor[3];
-													$party4[5] =$party4[5]+$armor[4];
-													$party4[8] =$party4[8]+$armor[5];
-													$party4[9] =$party4[9]+$armor[6];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
-													$m->execute($w);
-												}else{
-													$items = unserialize($row['armored']);
-													for($i=0;$i<count($items);$i++){
-														if($i==$emo){
-															$items[$i]++;
-														}
-													}
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,armored=:item where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-													$m->execute($w);
-												}
-											break;
-											case 4://get shoes
-												if(!$master[13]){
-													$master[13]=$shoes[0];
-													$master[3] =$master[3]+$shoes[2];
-													$master[4] =$master[4]+$shoes[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,master=:master where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':master'=>serialize($master),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party1[13]){
-													$party1[13]=$shoes[0];
-													$party1[3] =$party1[3]+$shoes[2];
-													$party1[4] =$party1[4]+$shoes[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party1=:party1 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party1'=>serialize($party1),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party2[13]){
-													$party2[13]=$shoes[0];
-													$party2[3] =$party2[3]+$shoes[2];
-													$party2[4] =$party2[4]+$shoes[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party2=:party2 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party2'=>serialize($party2),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party3[13]){
-													$party3[13]=$shoes[0];
-													$party3[3] =$party3[3]+$shoes[2];
-													$party3[4] =$party3[4]+$shoes[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party3=:party3 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party3'=>serialize($party3),':id'=>$row['id']);
-													$m->execute($w);
-												}else if(!$party4[13]){
-													$party4[13]=$shoes[0];
-													$party4[3] =$party4[3]+$shoes[2];
-													$party4[4] =$party4[4]+$shoes[3];
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,party4=:party4 where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':party4'=>serialize($party4),':id'=>$row['id']);
-													$m->execute($w);
-												}else{
-													$items = unserialize($row['shoes']);
-													for($i=0;$i<count($items);$i++){
-														if($i==$emo){
-															$items[$i]++;
-														}
-													}
-													$m  = 'UPDATE '.$tb_name.' set ghost=:ghost,shoes=:item where id=:id';
-													$m = $db->prepare($m);
-													$w = array(':ghost'=>serialize($ghost),':item'=>serialize($items),':id'=>$row['id']);
-													$m->execute($w);
-												}
-											break;
-										}
-									}else{
-										//print ' : nongetitem : ';
-										$m  = 'UPDATE '.$tb_name.' set ghost=:ghost where id=:id';
+										$master[10]=$weapon[0];
+										$master[3] =$master[3]-$nowm_w[2]+$weapon[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$master[4] =$master[4]-$nowm_w[3]+$weapon[3];
+										$master[6] =$master[6]-$nowm_w[4]+$weapon[4]*$plus;
+										$master[7] =$master[7]-$nowm_w[5]+$weapon[5];
+										$master[8] =$master[8]-$nowm_w[6]+$weapon[6];
+										$master[9] =$master[9]-$nowm_w[7]+$weapon[7];
+										$items = unserialize($row['weapon']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set weapon=:weapon,master=:master where id=:id';
 										$m = $db->prepare($m);
-										$w = array(':ghost'=>serialize($ghost),':id'=>$row['id']);
+										$w = array(':weapon'=>serialize($items),':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party1[10]&&$get_w>$now1_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party1[10];//weapon id backup
+										if($party1[0]==3&&$weapon[0]==13||$party1[0]==6&&$weapon[0]==13||$party1[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party1[10]=$weapon[0];
+										$party1[3] =$party1[3]+$weapon[2]-$now1_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party1[4] =$party1[4]+$weapon[3]-$now1_w[3];
+										$party1[6] =$party1[6]+$weapon[4]-$now1_w[4]*$plus;
+										$party1[7] =$party1[7]+$weapon[5]-$now1_w[5];
+										$party1[8] =$party1[8]-$now1_w[6]+$weapon[6];
+										$party1[9] =$party1[9]+$weapon[7]-$now1_w[7];
+										$items = unserialize($row['weapon']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set weapon=:weapon,party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':weapon'=>serialize($items),':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party2[10]&&$get_w>$now2_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party2[10];//weapon id backup
+										if($party2[0]==3&&$weapon[0]==13||$party2[0]==6&&$weapon[0]==13||$party2[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party2[10]=$weapon[0];
+										$party2[3] =$party2[3]+$weapon[2]-$now2_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party2[4] =$party2[4]+$weapon[3]-$now2_w[3];
+										$party2[6] =$party2[6]+$weapon[4]-$now2_w[4]*$plus;
+										$party2[7] =$party2[7]+$weapon[5]-$now2_w[5];
+										$party2[8] =$party2[8]-$now2_w[6]+$weapon[6];
+										$party2[9] =$party2[9]+$weapon[7]-$now2_w[7];
+										$items = unserialize($row['weapon']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set weapon=:weapon,party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':weapon'=>serialize($items),':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party3[10]&&$get_w>$now3_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party3[10];//weapon id backup
+										if($party3[0]==3&&$weapon[0]==13||$party3[0]==6&&$weapon[0]==13||$party3[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party3[10]=$weapon[0];
+										$party3[3] =$party3[3]+$weapon[2]-$now3_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party3[4] =$party3[4]+$weapon[3]-$now3_w[3];
+										$party3[6] =$party3[6]+$weapon[4]-$now3_w[4]*$plus;
+										$party3[7] =$party3[7]+$weapon[5]-$now3_w[5];
+										$party3[8] =$party3[8]-$now3_w[6]+$weapon[6];
+										$party3[9] =$party3[9]+$weapon[7]-$now3_w[7];
+										$items = unserialize($row['weapon']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set weapon=:weapon,party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':weapon'=>serialize($items),':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party4[10]&&$get_w>$now4_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party4[10];//weapon id backup
+										if($party4[0]==3&&$weapon[0]==13||$party4[0]==6&&$weapon[0]==13||$party4[0]==2&&$weapon[0]==18){
+											$plus=4;
+										}else{
+											$plus=1;
+										}
+										$party4[10]=$weapon[0];
+										$party4[3] =$party4[3]+$weapon[2]-$now4_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party4[4] =$party4[4]+$weapon[3]-$now4_w[3];
+										$party4[6] =$party4[6]+$weapon[4]-$now4_w[4]*$plus;
+										$party4[7] =$party4[7]+$weapon[5]-$now4_w[5];
+										$party4[8] =$party4[8]-$now4_w[6]+$weapon[6];
+										$party4[9] =$party4[9]+$weapon[7]-$now4_w[7];
+										$items = unserialize($row['weapon']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set weapon=:weapon,party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':weapon'=>serialize($items),':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else{
+										$items = unserialize($row['weapon']);
+										$items[$emo]++;
+										$m  = 'UPDATE '.$tb_name.' set weapon=:item where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':item'=>serialize($items),':id'=>$row['id']);
 										$m->execute($w);
 									}
-									for($ico=0;$ico<rand(1,4);$ico++){
-										$master[9]++;
+								break;
+								case 2://glove
+									foreach($rgro as $glove){
+										if($glove['id']==($emo+1)){
+											$grove = $glove;
+										}
 									}
-									$master[7]++;
-									$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
-									$m = $db->prepare($m);
-									$w = array(':master'=>serialize($master),':id'=>$row['id']);
-									$m->execute($w);
-								}else if($type==1){
-									//echo ' : Messege Array! : '.count($message);
-									$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
-									$m = $db->prepare($m);
-									$w = array(':trip'=>serialize($messeges),':id'=>$row['id']);
-									$m->execute($w);
-								}else if($type==2){
-									$master=unserialize($row['master']);
-									if($master[9]>0){
-										$master[9]--;
+									$nowm_p=0;$now1_p=0;$now2_p=0;$now3_p=0;$now4_p=0;
+									if($master[11]){
+										foreach($rgro as $grob){//今持っているgrove
+											if($grob['id']==$master[11]){
+												$nowm_w = $grob;
+											}
+										}
+										$nowm_p=$nowm_w[2]+$nowm_w[3];
 									}
-									$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
-									$m = $db->prepare($m);
-									$w = array(':master'=>serialize($master),':id'=>$row['id']);
-									$m->execute($w);
-								}
+									if($party1[11]){
+										foreach($rgro as $grob){//今持っているgrove
+											if($grob['id']==$party1[11]){
+												$now1_w = $grob;
+											}
+										}
+										$now1_p=$now1_w[2]+$now1_w[3];
+									}
+									if($party2[11]){
+										foreach($rgro as $grob){//今持っているgrove
+											if($grob['id']==$party2[11]){
+												$now2_w = $grob;
+											}
+										}
+										$now2_p=$now2_w[2]+$now2_w[3];
+									}
+									if($party3[11]){
+										foreach($rgro as $grob){//今持っているgrove
+											if($grob['id']==$party3[11]){
+												$now3_w = $grob;
+											}
+										}
+										$now3_p=$now3_w[2]+$now3_w[3];
+									}
+									if($party4[11]){
+										foreach($rgro as $grob){//今持っているgrove
+											if($grob['id']==$party4[11]){
+												$now4_w = $grob;
+											}
+										}
+										$now4_p=$now4_w[2]+$now4_w[3];
+									}
+									$get_w=$grove[2]+$grove[3];
+									if(!$master[11]){//持ってない場合は優先的に支給します
+										$master[11]=$grove[0];
+										$master[3] =$master[3]+$grove[2];
+										$master[4] =$master[4]+$grove[3];
+										$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party1[11]){
+										$party1[11]=$grove[0];
+										$party1[3] =$party1[3]+$grove[2];
+										$party1[4] =$party1[4]+$grove[3];
+										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party2[11]){
+										$party2[11]=$grove[0];
+										$party2[3] =$party2[3]+$grove[2];
+										$party2[4] =$party2[4]+$grove[3];
+										$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party3[11]){
+										$party3[11]=$grove[0];
+										$party3[3] =$party3[3]+$grove[2];
+										$party3[4] =$party3[4]+$grove[3];
+										$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party4[11]){
+										$party4[11]=$grove[0];
+										$party4[3] =$party4[3]+$grove[2];
+										$party4[4] =$party4[4]+$grove[3];
+										$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($master[11]&&$get_w>$nowm_p){//マスターの手袋を比較、ゲット方がよかったら交換
+										$bk_w=$master[11];//grove id backup
+										$master[11]=$grove[0];
+										$master[3] =$master[3]+$grove[2]-$nowm_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$master[4] =$master[4]+$grove[3]-$nowm_w[3];
+										$items = unserialize($row['grove']);
+										$items[($bk_w-1)]++;//外したgroveのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set grove=:grove,master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':grove'=>serialize($items),':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party1[11]&&$get_w>$now1_p){//party1比較、ゲットした方がよかったら交換
+										$bk_w=$party1[11];//grove id backup
+										$party1[11]=$grove[0];
+										$party1[3] =$party1[3]+$grove[2]-$now1_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party1[4] =$party1[4]+$grove[3]-$now1_w[3];
+										$items = unserialize($row['grove']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set grove=:grove,party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':grove'=>serialize($items),':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party2[11]&&$get_w>$now2_p){//party1のgroveを比較、ゲットした方がよかったら交換
+										$bk_w=$party2[11];//grove id backup
+										$party2[11]=$grove[0];
+										$party2[3] =$party2[3]+$grove[2]-$now2_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party2[4] =$party2[4]+$grove[3]-$now2_w[3];
+										$items = unserialize($row['grove']);
+										$items[($bk_w-1)]++;//外したgroveのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set grove=:grove,party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':grove'=>serialize($items),':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party3[11]&&$get_w>$now3_p){//party1のgroveを比較、ゲットした方がよかったら交換
+										$bk_w=$party3[11];//grove id backup
+										$party3[11]=$grove[0];
+										$party3[3] =$party3[3]+$grove[2]-$now3_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party3[4] =$party3[4]+$grove[3]-$now3_w[3];
+										$items = unserialize($row['grove']);
+										$items[($bk_w-1)]++;//外したgroveのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set grove=:grove,party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':grove'=>serialize($items),':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party4[11]&&$get_w>$now4_p){//party1のgroveを比較、ゲットした方がよかったら交換
+										$bk_w=$party4[11];//grove id backup
+										$party4[11]=$grove[0];
+										$party4[3] =$party4[3]+$grove[2]-$now4_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party4[4] =$party4[4]+$grove[3]-$now4_w[3];
+										$items = unserialize($row['grove']);
+										$items[($bk_w-1)]++;//外したgroveのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set grove=:grove,party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':grove'=>serialize($items),':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else{
+										$items = unserialize($row['grove']);
+										$items[$emo]++;
+										$m  = 'UPDATE '.$tb_name.' set grove=:item where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':item'=>serialize($items),':id'=>$row['id']);
+										$m->execute($w);
+									}
+								break;
+								case 3://armored
+									foreach($rarm as $armd){
+										if($armd['id']==($emo+1)){
+											$armor = $armd;
+										}
+									}
+									$nowm_p=0;$now1_p=0;$now2_p=0;$now3_p=0;$now4_p=0;
+									if($master[12]){
+										foreach($rarm as $arm){//今持っている
+											if($arm['id']==$master[12]){
+												$nowm_w = $arm;
+											}
+										}
+										$nowm_p=$nowm_w[2]+$nowm_w[3]+$nowm_w[4]+$nowm_w[5]+$nowm_w[6];
+									}
+									if($party1[12]){
+										foreach($rarm as $arm){//今持ってい
+											if($arm['id']==$party1[12]){
+												$now1_w = $arm;
+											}
+										}
+										$now1_p=$now1_w[2]+$now1_w[3]+$now1_w[4]+$now1_w[5]+$now1_w[6];
+									}
+									if($party2[12]){
+										foreach($rarm as $arm){//今持っている
+											if($arm['id']==$party2[12]){
+												$now2_w = $arm;
+											}
+										}
+										$now2_p=$now2_w[2]+$now2_w[3]+$now2_w[4]+$now2_w[5]+$now2_w[6];
+									}
+									if($party3[12]){
+										foreach($rarm as $arm){//今持っている
+											if($arm['id']==$party3[12]){
+												$now3_w = $arm;
+											}
+										}
+										$now3_p=$now3_w[2]+$now3_w[3]+$now3_w[4]+$now3_w[5]+$now3_w[6];
+									}
+									if($party4[12]){
+										foreach($rarm as $arm){//今持っている
+											if($arm['id']==$party4[12]){
+												$now4_w = $arm;
+											}
+										}
+										$now4_p=$now4_w[2]+$now4_w[3]+$now4_w[4]+$now4_w[5]+$now4_w[6];
+									}
+									$get_w=$armor[2]+$armor[3]+$armor[4]+$armor[5]+$armor[6];
+									if(!$master[12]){
+										if($master[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$master[12]=$armor[0];
+										$master[3] =$master[3]+$armor[2]*$plus;
+										$master[4] =$master[4]+$armor[3];
+										$master[5] =$master[5]+$armor[4];
+										$master[8] =$master[8]+$armor[5];
+										$master[9] =$master[9]+$armor[6];
+										$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party1[12]){
+										if($party1[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party1[12]=$armor[0];
+										$party1[3] =$party1[3]+$armor[2]*$plus;
+										$party1[4] =$party1[4]+$armor[3];
+										$party1[5] =$party1[5]+$armor[4];
+										$party1[8] =$party1[8]+$armor[5];
+										$party1[9] =$party1[9]+$armor[6];
+										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party2[12]){
+										if($party2[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party2[12]=$armor[0];
+										$party2[3] =$party2[3]+$armor[2]*$plus;
+										$party2[4] =$party2[4]+$armor[3];
+										$party2[5] =$party2[5]+$armor[4];
+										$party2[8] =$party2[8]+$armor[5];
+										$party2[9] =$party2[9]+$armor[6];
+										$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party3[12]){
+										if($party3[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party3[12]=$armor[0];
+										$party3[3] =$party3[3]+$armor[2]*$plus;
+										$party3[4] =$party3[4]+$armor[3];
+										$party3[6] =$party3[5]+$armor[4];
+										$party3[8] =$party3[8]+$armor[5];
+										$party3[9] =$party3[9]+$armor[6];
+										$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party4[12]){
+										if($party4[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party4[12]=$armor[0];
+										$party4[3] =$party4[3]+$armor[2]*$plus;
+										$party4[4] =$party4[4]+$armor[3];
+										$party4[5] =$party4[5]+$armor[4];
+										$party4[8] =$party4[8]+$armor[5];
+										$party4[9] =$party4[9]+$armor[6];
+										$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($master[12]&&$get_w>$nowm_p){//マスターのarmorを比較、ゲット方がよかったら交換
+										$bk_w=$master[12];//armor id backup
+										if($master[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$master[12]=$armor[0];
+										$master[3] =$master[3]+$armor[2]-$nowm_w[2]*$plus;//最初から引いちゃうとマイナスになっちゃうかも？
+										$master[4] =$master[4]-$nowm_w[3]+$armor[3];
+										$master[5] =$master[5]+$armor[4]-$nowm_w[4];
+										$master[8] =$master[8]+$armor[5]-$nowm_w[5];
+										$master[9] =$master[9]+$armor[6]-$nowm_w[6];
+										$items = unserialize($row['armored']);
+										$items[($bk_w-1)]++;//外したarmorのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set armored=:armored,master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':armored'=>serialize($items),':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party1[12]&&$get_w>$now1_p){//party1比較、ゲットした方がよかったら交換
+										$bk_w=$party1[12];//grove id backup
+										if($party1[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party1[12]=$armor[0];
+										$party1[3] =$party1[3]+$armor[2]-$now1_w[2]*$plus;//最初から引いちゃうとマイナスになっちゃうかも？
+										$party1[4] =$party1[4]-$now1_w[3]+$armor[3];
+										$party1[5] =$party1[5]+$armor[4]-$now1_w[4];
+										$party1[8] =$party1[8]+$armor[5]-$now1_w[5];
+										$party1[9] =$party1[9]+$armor[6]-$now1_w[6];
+										$items = unserialize($row['armored']);
+										$items[($bk_w-1)]++;//外したarmorのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set armored=:armored,party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':armored'=>serialize($items),':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party2[12]&&$get_w>$now2_p){//party1のarmorを比較、ゲットしたarmorの方がよかったら交換
+										$bk_w=$party2[12];//armor id backup
+										if($party2[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party2[12]=$armor[0];
+										$party2[3] =$party2[3]+$armor[2]-$now2_w[2]*$plus;//最初から引いちゃうとマイナスになっちゃうかも？
+										$party2[4] =$party2[4]-$now2_w[3]+$armor[3];
+										$party2[5] =$party2[5]+$armor[4]-$now2_w[4];
+										$party2[8] =$party2[8]+$armor[5]-$now2_w[5];
+										$party2[9] =$party2[9]+$armor[6]-$now2_w[6];
+										$items = unserialize($row['armored']);
+										$items[($bk_w-1)]++;//外したarmorのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set armored=:armored,party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':armored'=>serialize($items),':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party3[12]&&$get_w>$now3_p){//party1のarmorを比較、ゲットした方がよかったら交換
+										$bk_w=$party3[12];//armor id backup
+										if($party3[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party3[12]=$armor[0];
+										$party3[3] =$party3[3]+$armor[2]-$now3_w[2]*$plus;//最初から引いちゃうとマイナスになっちゃうかも？
+										$party3[4] =$party3[4]-$now3_w[3]+$armor[3];
+										$party3[5] =$party3[5]+$armor[4]-$now3_w[4];
+										$party3[8] =$party3[8]+$armor[5]-$now3_w[5];
+										$party3[9] =$party3[9]+$armor[6]-$now3_w[6];
+										$items = unserialize($row['armored']);
+										$items[($bk_w-1)]++;//外したarmorのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set armored=:armored,party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':armored'=>serialize($items),':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party4[12]&&$get_w>$now4_p){//party1のarmorを比較、ゲットした方がよかったら交換
+										$bk_w=$party4[12];//armor id backup
+										if($party4[0]==1&&$armor[0]==4){
+											$plus=4;//サヨが紺糸なら防御が倍
+										}else{
+											$plus=1;
+										}
+										$party4[12]=$armor[0];
+										$party4[3] =$party4[3]+$armor[2]-$now4_w[2]*$plus;//最初から引いちゃうとマイナスになっちゃうかも？
+										$party4[4] =$party4[4]-$now4_w[3]+$armor[3];
+										$party4[5] =$party4[5]+$armor[4]-$now4_w[4];
+										$party4[8] =$party4[8]+$armor[5]-$now4_w[5];
+										$party4[9] =$party4[9]+$armor[6]-$now4_w[6];
+										$items = unserialize($row['armored']);
+										$items[($bk_w-1)]++;//外したarmorのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set armored=:armored,party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':armored'=>serialize($items),':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else{
+										$items = unserialize($row['armored']);
+										$items[$emo]++;
+										$m  = 'UPDATE '.$tb_name.' set armored=:item where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':item'=>serialize($items),':id'=>$row['id']);
+										$m->execute($w);
+									}
+								break;
+								case 4://get shoes
+									foreach($rsho as $kutu){
+										if($kutu['id']==($emo+1)){
+											$shoes = $kutu;
+										}
+									}
+									$nowm_p=0;$now1_p=0;$now2_p=0;$now3_p=0;$now4_p=0;
+									if($master[13]){
+										foreach($rsho as $kut){//今持っているshoes
+											if($kut['id']==$master[13]){
+												$nowm_w = $kut;
+											}
+										}
+										$nowm_p=$nowm_w[2]+$nowm_w[3];
+									}
+									if($party1[13]){
+										foreach($rsho as $kut){//今持っているshoes
+											if($kut['id']==$party1[13]){
+												$now1_w = $kut;
+											}
+										}
+										$now1_p=$now1_w[2]+$now1_w[3];
+									}
+									if($party2[13]){
+										foreach($rsho as $kut){//今持っているshoes
+											if($kut['id']==$party2[13]){
+												$now2_w = $kut;
+											}
+										}
+										$now2_p=$now2_w[2]+$now2_w[3];
+									}
+									if($party3[13]){
+										foreach($rsho as $kut){//今持っているshows
+											if($kut['id']==$party3[13]){
+												$now3_w = $kut;
+											}
+										}
+										$now3_p=$now3_w[2]+$now3_w[3];
+									}
+									if($party4[13]){
+										foreach($rsho as $kut){//今持っているshoes
+											if($kut['id']==$party4[13]){
+												$now4_w = $kut;
+											}
+										}
+										$now4_p=$now4_w[2]+$now4_w[3];
+									}
+									$get_w=$shoes[2]+$shoes[3];
+									if(!$master[13]){
+										$master[13]=$shoes[0];
+										$master[3] =$master[3]+$shoes[2];
+										$master[4] =$master[4]+$shoes[3];
+										$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party1[13]){
+										$party1[13]=$shoes[0];
+										$party1[3] =$party1[3]+$shoes[2];
+										$party1[4] =$party1[4]+$shoes[3];
+										$m  = 'UPDATE '.$tb_name.' set party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party2[13]){
+										$party2[13]=$shoes[0];
+										$party2[3] =$party2[3]+$shoes[2];
+										$party2[4] =$party2[4]+$shoes[3];
+										$m  = 'UPDATE '.$tb_name.' set party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party3[13]){
+										$party3[13]=$shoes[0];
+										$party3[3] =$party3[3]+$shoes[2];
+										$party3[4] =$party3[4]+$shoes[3];
+										$m  = 'UPDATE '.$tb_name.' set party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if(!$party4[13]){
+										$party4[13]=$shoes[0];
+										$party4[3] =$party4[3]+$shoes[2];
+										$party4[4] =$party4[4]+$shoes[3];
+										$m  = 'UPDATE '.$tb_name.' set party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($master[13]&&$get_w>$nowm_p){//マスターのshoesを比較、ゲット方がよかったら交換
+										$bk_w=$master[13];//shoes id backup
+										$master[13]=$shoes[0];
+										$master[3] =$master[3]+$shoes[2]-$nowm_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$master[4] =$master[4]+$shoes[3]-$nowm_w[3];
+										$items = unserialize($row['shoes']);
+										$items[($bk_w-1)]++;//外したshoesのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set shoes=:shoes,master=:master where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':shoes'=>serialize($items),':master'=>serialize($master),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party1[13]&&$get_w>$now1_p){//party1比較、ゲットした方がよかったら交換
+										$bk_w=$party1[13];//shoes id backup
+										$party1[13]=$shoes[0];
+										$party1[3] =$party1[3]+$shoes[2]-$now1_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party1[4] =$party1[4]+$shoes[3]-$now1_w[3];
+										$items = unserialize($row['shoes']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set shoes=:shoes,party1=:party1 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':shoes'=>serialize($items),':party1'=>serialize($party1),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party2[13]&&$get_w>$now2_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party2[13];//weapon id backup
+										$party2[13]=$shoes[0];
+										$party2[3] =$party2[3]+$shoes[2]-$now2_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party2[4] =$party2[4]+$shoes[3]-$now2_w[3];
+										$items = unserialize($row['shoes']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set shoes=:shoes,party2=:party2 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':shoes'=>serialize($items),':party2'=>serialize($party2),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party3[13]&&$get_w>$now3_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party3[13];//weapon id backup
+										$party3[13]=$shoes[0];
+										$party3[3] =$party3[3]+$shoes[2]-$now3_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party3[4] =$party3[4]+$shoes[3]-$now3_w[3];
+										$items = unserialize($row['shoes']);
+										$items[($bk_w-1)]++;//外した武器のリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set shoes=:shoes,party3=:party3 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':shoes'=>serialize($items),':party3'=>serialize($party3),':id'=>$row['id']);
+										$m->execute($w);
+									}else if($party4[13]&&$get_w>$now4_p){//party1の武器を比較、ゲットした武器の方がよかったら交換
+										$bk_w=$party4[13];//weapon id backup
+										$party4[13]=$shoes[0];
+										$party4[3] =$party4[3]+$shoes[2]-$now4_w[2];//最初から引いちゃうとマイナスになっちゃうかも？
+										$party4[4] =$party4[4]+$shoes[3]-$now4_w[3];
+										$items = unserialize($row['shoes']);
+										$items[($bk_w-1)]++;//外したshoesのリストをインクリメントする
+										$m  = 'UPDATE '.$tb_name.' set shoes=:shoes,party4=:party4 where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':shoes'=>serialize($items),':party4'=>serialize($party4),':id'=>$row['id']);
+										$m->execute($w);
+									}else{
+										$items = unserialize($row['shoes']);
+										$items[$emo]++;
+										$m  = 'UPDATE '.$tb_name.' set shoes=:item where id=:id';
+										$m = $db->prepare($m);
+										$w = array(':item'=>serialize($items),':id'=>$row['id']);
+										$m->execute($w);
+									}
+								break;
 							}
 						}
+						if($Get_enemy_cp<80){
+							$max=2;
+						}else if($Get_enemy_cp>=80&&$Get_enemy_cp<100){
+							$max=5;
+						}else{
+							$max=1;
+						}
+						for($ico=0;$ico<rand(1,$max);$ico++){
+							$master[9]++;
+						}
+						if($master[9]>999){
+							$master[9]=999;
+						}
+						$master[7]++;
+						if($master[7]>999){
+							$master[7]=999;
+						}
+						$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+						$m = $db->prepare($m);
+						$w = array(':master'=>serialize($master),':id'=>$row['id']);
+						$m->execute($w);
+					}else if($type==1){
+						//echo ' : Messege Array! : '.count($message);
+						$m  = 'UPDATE '.$tb_name.' set trip=:trip where id=:id';
+						$m = $db->prepare($m);
+						$w = array(':trip'=>serialize($messeges),':id'=>$row['id']);
+						$m->execute($w);
+					}else if($type==2){
+						$master=unserialize($row['master']);
+						if($master[9]>0){
+							$master[9]--;
+						}
+						$m  = 'UPDATE '.$tb_name.' set master=:master where id=:id';
+						$m = $db->prepare($m);
+						$w = array(':master'=>serialize($master),':id'=>$row['id']);
+						$m->execute($w);
 					}
 				}
 			}
-		}
 		//close mysql
 		$db = null;
+		}
 	}catch(PDOException $e){
 		echo "DB connect failure..." . PHP_EOL;
 		echo $e->getMessage();
