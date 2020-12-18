@@ -584,6 +584,12 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 		}
 		//count ghost
 		$g_count=array_sum($rowghost);
+		//delete angel count
+		if($rowghost[37]){$g_count-1;}
+		if($rowghost[38]){$g_count-1;}
+		if($rowghost[39]){$g_count-1;}
+		if($rowghost[40]){$g_count-1;}
+		if($rowghost[41]){$g_count-1;}
 		//count tubo
 		$t_count=$items[16]-$g_count;
 		if($t_count<=0){
@@ -1631,10 +1637,10 @@ function first($ghos,$en,$g_nam,$maste,$part1,$part2,$part3,$part4,$loop){
 											}
 												$mess[] = 'START_EVENT!';
 												if($local){
-													$mess[] = 'Saw something drop. When I pick it up, it looks like '.$gets.'!';
+													$mess[] = 'Suddenly found something, interested in. When I pick it up, it looks like '.$gets.'!';
 													$mess[] = 'Got ['.$gets.']!';
 												}else{
-													$mess[] = '何かを落とすのが見えた。拾ってみると'.$gets.'のようだ！';
+													$mess[] = 'ふと何か気になるものを見つけた。拾ってみると'.$gets.'のようだ！';
 													$mess[] = '「'.$gets.'」をゲットした！';
 												}
 										}
